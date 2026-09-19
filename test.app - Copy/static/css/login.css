@@ -1,0 +1,148 @@
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+/* Body background */
+body {
+  background-color: #e8f9e9;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+/* Container */
+.login-container {
+  background: white;
+  width: 900px;
+  display: flex;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Left section (logo + text) */
+.login-left {
+  flex: 1;
+  background: #ffffff;
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border-right: 2px solid #f0f0f0;
+}
+
+.login-left img {
+  width: 350px;   /* ✅ bigger logo */
+  max-width: 100%;
+  height: auto;
+  margin-bottom: 20px;
+}
+
+.login-left h2 {
+  font-size: 22px;
+  font-weight: bold;
+  color: #0c6b2d;
+  margin-bottom: 10px;
+}
+
+.login-left p {
+  font-size: 15px;
+  color: #333;
+  text-align: center;
+}
+
+/* Right section (form) */
+.login-right {
+  flex: 1;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.login-right h1 {
+  font-size: 24px;
+  font-weight: bold;
+  color: #0c6b2d;
+  margin-bottom: 20px;
+}
+
+/* Input fields */
+.login-right input[type="text"],
+.login-right input[type="password"] {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/* Options (Remember me + Forgot) */
+.options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  font-size: 13px;
+}
+
+.options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.options a {
+  text-decoration: none;
+  color: #0c6b2d;
+  font-weight: bold;
+  transition: color 0.3s;
+}
+
+.options a:hover {
+  color: #138a3f;
+}
+
+/* Login Button */
+.login-btn {
+  width: 100%;
+  background: #0c6b2d;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: background 0.3s;
+}
+
+.login-btn:hover {
+  background: #138a3f;
+}
+
+/* Sign up Button */
+.signup-btn {
+  width: 100%;
+  background: linear-gradient(to right, #138a3f, #0c6b2d);
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: opacity 0.3s;
+}
+
+.signup-btn:hover {
+  opacity: 0.9;
+}

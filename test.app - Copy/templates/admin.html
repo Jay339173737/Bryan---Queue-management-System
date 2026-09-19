@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NWSSU TapIn Queue System - Admin</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    /* --- Flash Messages --- */
+    .flash { margin: 1rem 0; padding: 0.875rem 1.25rem; border-radius: 12px; font-weight: 500; }
+    .flash.success { background: var(--nwssu-green-light); color: var(--nwssu-green-deep); border-left: 4px solid var(--nwssu-green-primary); }
+    .flash.info { background: #e0f2fe; color: #0c4a6e; border-left: 4px solid #0284c7; }
+    .flash.danger { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
+    
+    .disabled-btn { opacity: 0.4 !important; cursor: not-allowed !important; }
+    
+    /* --- Settings Styling Updates --- */
+    .settings-form input[type="time"] {
+        padding: 0.5rem;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        font-size: 0.875rem;
+        background: var(--nwssu-green-pale);
+    }
+
+    /* Make the settings bars look good inside the card */
+    .internal-settings-box {
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 2px dashed #cbd5e1; /* Visual separator */
+    }
+    
+    .settings-bar {
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+    .settings-bar:hover {
+        border-color: #cbd5e1;
+        background: #fff;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="dashboard">
+    <aside class="sidebar">
+      <div class="logo-container">
+        <img src="{{ url_for('static', filename='images/nwssu1.png') }}" 
+             alt="NWSSU Logo" 
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="logo-fallback" style="display: none;">NW</div>
+      </div>
+      
+      <h2>Admin Panel</h2>
+      <a href="{{ url_for('admin_control_panel') }}" class="sidebar__link active">Overview</a>
+      <a href="{{ url_for('view_ticket_history') }}" class="sidebar__link">History</a>
+      <a href="{{ url_for('admin_logout') }}" class="sidebar__link logout">Logout</a>
+    </aside>
+
+    <main class="main">
+      <div class="header">
+        <h2>Nwssu tapIn Queue System</h2>
+      </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, msg in messages %}
+            <div class="flash {{ category }}">{{ msg }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <div class="queue-actions">
+        
+        <section class="card">
+          
+          <h3>Current Number</h3>
+          <div class="current-number-wrapper">
+            <span class="current-number-label">Now Serving</span>
+            <div id="currentNumberContainer" class="current-number">
+              {{ current_ticket.ticket if current_ticket else "--" }}
+            </div>
+          </div>
+
+          <div class="next-ticket">
+            <strong>Next Ticket:</strong><br>
+            <span id="nextTicketNumber">{{ next_ticket.ticket if next_ticket else "--" }}</span> / 
+            <span id="nextTicketName">{{ next_ticket.name if next_ticket else "--" }}</span>
+          </div>
+
+          <form id="recallForm" method="POST" action="{{ url_for('recall_current_customer') }}" style="margin-bottom: 10px;">
+            <button id="recallBtn" type="submit" class="recall-btn {% if not current_ticket %}disabled-btn{% endif %}" {% if not current_ticket %}disabled{% endif %}>
+               Recall Customer
+            </button>
+          </form>
+
+          <form id="noshowForm" method="POST" action="{{ url_for('mark_customer_absent') }}">
+            <button id="noShowBtn" type="submit" class="noshow-btn {% if not has_queue %}disabled-btn{% endif %}" {% if not has_queue %}disabled{% endif %}>
+              No Show
+            </button>
+          </form>
+
+          <form id="serveForm" method="POST" action="{{ url_for('advance_to_next_customer') }}">
+            <button id="serveBtn" type="submit" class="serve-btn {% if not has_queue %}disabled-btn{% endif %}" {% if not has_queue %}disabled{% endif %}>
+              {% if current_ticket and next_ticket %}
+                Finish & Serve Next
+              {% elif current_ticket and not next_ticket %}
+                Finish Serving
+              {% elif not current_ticket and next_ticket %}
+                Start Serving
+              {% else %}
+                No One Waiting
+              {% endif %}
+            </button>
+          </form>
+
+          <div class="internal-settings-box">
+            
+            <div class="flow-control" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                <span id="flowLabel" class="flow-label" style="font-weight: 600; color: #334155; font-size: 0.9rem;">
+                    {% if flow_status == 'active' %}Queue Active{% else %}Queue Paused{% endif %}
+                </span>
+                <label class="switch">
+                    <input type="checkbox" id="flowToggle" {% if flow_status == 'active' %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="settings-bar" id="settingsBar" onclick="toggleSettings()">
+                <div class="settings-bar-header" style="padding: 10px;">
+                    <span class="settings-bar-title" style="font-size: 0.85rem; font-weight:600;">Ticket Limit</span>
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <span class="settings-bar-status" style="font-size: 0.8rem; color:#64748b;">{{ today_count }}/{{ daily_limit }}</span>
+                        <span class="settings-bar-icon">▼</span>
+                    </div>
+                </div>
+                <div class="settings-content" id="settingsContent">
+                    <form class="settings-form" method="POST" action="{{ url_for('admin_control_panel') }}" style="padding: 10px;">
+                        <div style="display:flex; gap:5px;">
+                            <input type="number" id="daily_limit" name="daily_limit" value="{{ daily_limit }}" min="1" max="999" style="width: 100%;">
+                            <button type="submit" style="padding: 5px 10px; font-size: 0.8rem;">Set</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="settings-bar" id="announceBar" onclick="toggleAnnounce()">
+                <div class="settings-bar-header" style="padding: 10px;">
+                    <span class="settings-bar-title" style="font-size: 0.85rem; font-weight:600;">Break Sign</span>
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        {% if resume_time %}
+                            <span class="settings-bar-status" style="font-size: 0.8rem; color: #f59e0b;">On</span>
+                        {% else %}
+                            <span class="settings-bar-status" style="font-size: 0.8rem; color: #94a3b8;">Off</span>
+                        {% endif %}
+                        <span class="settings-bar-icon">▼</span>
+                    </div>
+                </div>
+                <div class="settings-content" id="announceContent">
+                    <form class="settings-form" method="POST" action="{{ url_for('announce_resume') }}" style="padding: 10px;">
+                        <label style="font-size: 0.75rem; color: #64748b;">Resume Time:</label>
+                        <input type="time" id="resume_time" name="resume_time" required value="{{ resume_time or '' }}" style="width: 100%; margin-bottom: 8px;">
+                        <div style="display: flex; gap: 5px;">
+                            <button type="submit" name="action" value="post" style="background: #f59e0b; color:white; flex:1; font-size:0.8rem; padding:5px;">Post</button>
+                            <button type="submit" name="action" value="clear" style="background: #ef4444; color:white; flex:1; font-size:0.8rem; padding:5px;" formnovalidate>Clear</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+          </div>
+          </section>
+
+        <div class="table-container">
+          <h3>Waiting Queue (Total: <span id="queueCount">{{ total_in_queue }}</span>)</h3>
+          <table id="queue-table">
+            <thead>
+              <tr>
+                <th>Ticket #</th>
+                <th>Name</th>
+                <th>Student ID</th>
+                <th>Role</th>
+                <th>Reason</th>
+                <th>Created At</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for ticket in queue %}
+              <tr>
+                <td>{{ ticket.ticket }}</td>
+                <td>{{ ticket.name }}</td>
+                <td>{{ ticket.student_id or '-' }}</td>
+                <td>{{ ticket.role }}</td>
+                <td>{{ ticket.reason }}</td>
+                <td>{{ ticket.created_at }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <div id="admin-toast-container" aria-live="polite"></div>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    const socket = io(window.location.origin, { transports: ["websocket"], cors: { origin: "*" } });
+
+    // --- Element References ---
+    const queueTable = document.querySelector("#queue-table tbody");
+    const queueCount = document.getElementById("queueCount");
+    const currentNumberContainer = document.getElementById("currentNumberContainer");
+    const nextTicketNumber = document.getElementById("nextTicketNumber");
+    const nextTicketName = document.getElementById("nextTicketName");
+    
+    const serveBtn = document.getElementById("serveBtn");
+    const noShowBtn = document.getElementById("noShowBtn");
+    const recallBtn = document.getElementById("recallBtn");
+    const flowToggle = document.getElementById("flowToggle");
+    const flowLabel = document.getElementById("flowLabel");
+
+    const adminToastContainer = document.getElementById('admin-toast-container');
+    const settingsBar = document.getElementById('settingsBar');
+    const settingsContent = document.getElementById('settingsContent');
+
+    window.lastQueueState = null;
+
+    // --- UI Toggles ---
+    function toggleSettings() {
+      settingsBar.classList.toggle('expanded');
+      settingsContent.classList.toggle('show');
+    }
+
+    function toggleAnnounce() {
+      const bar = document.getElementById('announceBar');
+      const content = document.getElementById('announceContent');
+      bar.classList.toggle('expanded');
+      content.classList.toggle('show');
+    }
+
+    document.querySelectorAll('.settings-content form').forEach(form => {
+        form.addEventListener('click', (e) => e.stopPropagation());
+    });
+
+    function showAdminToast(text, ttl = 5000) {
+      const el = document.createElement('div');
+      el.className = 'admin-toast';
+      el.textContent = text;
+      adminToastContainer.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = 0;
+        setTimeout(() => el.remove(), 300);
+      }, ttl);
+    }
+
+  function updateButtonTextOnly() {
+      const payload = window.lastQueueState;
+      if (!payload) return;
+
+      const nowServing = payload.current_ticket;
+      const nextWaiting = payload.next_ticket;
+      const hasQueue = payload.has_queue; 
+      const isFlowActive = flowToggle ? flowToggle.checked : true;
+
+      // 1. RECALL BUTTON LOGIC
+      if (recallBtn) {
+        const canRecall = !!nowServing;
+        const currentCount = (nowServing && nowServing.recall_count) ? nowServing.recall_count : 0;
+        const maxReached = currentCount >= 3;
+
+        if (!canRecall) {
+            recallBtn.disabled = true; 
+            recallBtn.classList.add("disabled-btn");
+            recallBtn.textContent = "Recall Customer";
+            recallBtn.style.cursor = "not-allowed";
+        } else if (maxReached) {
+            recallBtn.disabled = true; 
+            recallBtn.classList.add("disabled-btn");
+            recallBtn.textContent = "Max Recalls (3/3)";
+            recallBtn.style.cursor = "not-allowed";
+        } else {
+            recallBtn.disabled = false;
+            recallBtn.classList.remove("disabled-btn");
+            recallBtn.textContent = `Recall Customer (${currentCount}/3)`;
+            recallBtn.style.cursor = "pointer";
+        }
+      }
+
+      // 2. NO SHOW BUTTON LOGIC (Fixed for your workflow)
+      // 2. NO SHOW BUTTON LOGIC (Strict: Current Only)
+      if (noShowBtn) {
+        // STRICT: Only enable if someone is currently being served (nowServing)
+        // If we are just "Waiting", this button is dead.
+        const canNoShow = !!nowServing;
+        
+        noShowBtn.disabled = !canNoShow;
+        noShowBtn.classList.toggle("disabled-btn", !canNoShow);
+        
+        noShowBtn.textContent = "No Show";
+      }
+
+      // 3. SERVE BUTTON LOGIC
+      if (serveBtn) {
+        let shouldDisable = !hasQueue; 
+        
+        if (isFlowActive) {
+          if (nowServing && nextWaiting) {
+            serveBtn.textContent = "Finish & Serve Next";
+            shouldDisable = false; 
+          } else if (nowServing && !nextWaiting) {
+            serveBtn.textContent = "Finish Serving";
+            shouldDisable = false; 
+          } else if (!nowServing && nextWaiting) {
+            serveBtn.textContent = "Start Serving";
+            shouldDisable = false; 
+          } else {
+            serveBtn.textContent = "No One Waiting";
+            shouldDisable = true;
+          }
+        } else {
+          if (nowServing) {
+            serveBtn.textContent = "Stop & Finish Current";
+            shouldDisable = false; 
+          } else {
+            serveBtn.textContent = "Queue Paused";
+            shouldDisable = true;
+          }
+        }
+        
+        serveBtn.disabled = shouldDisable;
+        serveBtn.classList.toggle("disabled-btn", shouldDisable);
+      }
+    }
+    // --- Listeners ---
+    if (flowToggle) {
+      flowToggle.addEventListener('change', function() {
+        if (flowLabel) flowLabel.textContent = this.checked ? "Queue Active" : "Queue Paused";
+        fetch("{{ url_for('toggle_queue_flow') }}", { method: "POST" })
+          .then(response => response.json())
+          .then(data => {
+            updateButtonTextOnly();
+          })
+          .catch(err => {
+            this.checked = !this.checked; 
+            showAdminToast("Error connecting to server", 3000);
+          });
+      });
+    }
+
+    // --- Socket Events ---
+    socket.on("connect", () => { console.log("🟢 Admin connected"); });
+
+    socket.on('flow_status_update', (data) => {
+      const isActive = data.status === 'active';
+      if (flowToggle) flowToggle.checked = isActive;
+      if (flowLabel) flowLabel.textContent = isActive ? "Queue Active" : "Queue Paused";
+      updateButtonTextOnly();
+    });
+
+    socket.on("queue_update", (payload) => {
+      window.lastQueueState = payload;
+      const queue = payload.queue || [];
+      const current = payload.current_ticket;
+      const next = payload.next_ticket;
+
+      // Update Table
+      queueTable.innerHTML = queue.map(item => `
+        <tr>
+          <td>${item.ticket}</td>
+          <td>${item.name || "-"}</td>
+          <td>${item.student_id || "-"}</td>
+          <td>${item.role || "-"}</td>
+          <td>${item.reason || "-"}</td>
+          <td>${item.created_at || "-"}</td>
+        </tr>
+      `).join("");
+
+      if (queueCount) queueCount.textContent = queue.length;
+      if (currentNumberContainer) currentNumberContainer.textContent = current?.ticket || "--";
+      if (nextTicketNumber) nextTicketNumber.textContent = next?.ticket || "--";
+      if (nextTicketName) nextTicketName.textContent = next?.name || "--";
+
+      updateButtonTextOnly();
+
+      // Update Settings Bar Status
+      if (payload.today_count !== undefined) {
+        const statusEl = document.querySelector('.settings-bar-status');
+        if (statusEl) statusEl.textContent = `${payload.today_count}/${payload.daily_limit}`;
+      }
+    });
+// Listen for Student Acknowledgment (When they press OK)
+    socket.on('ack_log', (data) => {
+      if (!data) return;
+      
+      // Format the message
+      const ticketNum = data.ticket || '?';
+      const studentName = data.name || 'Student';
+      
+      // Create the text: "👋 Ticket #8 (Jayrold) is here!"
+      const message = `👋 Ticket #${ticketNum} (${studentName}) is here!`;
+      
+      // Show the toast (Blue color for info)
+      // We create a custom style for this specific toast to make it stand out
+      const el = document.createElement('div');
+      el.className = 'admin-toast';
+      el.style.backgroundColor = '#0ea5e9'; // Bright Blue
+      el.style.color = 'white';
+      el.textContent = message;
+      
+      // Play a subtle sound if you want (Optional)
+      // const audio = new Audio('/static/sounds/ping.mp3'); 
+      // audio.play().catch(e => {});
+
+      adminToastContainer.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = 0;
+        setTimeout(() => el.remove(), 300);
+      }, 8000); // Keep it visible for 8 seconds
+    });
+    socket.on('announcement', (data) => {
+      if (data && data.message) showAdminToast(data.message, 6000);
+    });
+
+    // --- AJAX FORM HIJACKING (Prevents Reload/Jump) ---
+    function hijackForm(formId) {
+      const form = document.getElementById(formId);
+      if (!form) return;
+
+      form.addEventListener('submit', function(e) {
+        e.preventDefault(); 
+        
+        const btn = form.querySelector('button');
+        if (btn) {
+            btn.disabled = true;
+            btn.classList.add('disabled-btn');
+            btn.style.cursor = 'wait';
+        }
+
+        fetch(form.action, { method: form.method, body: new FormData(form) })
+        .then(response => { /* Socket will update UI */ })
+        .catch(err => {
+            console.error("Error:", err);
+            if (btn) {
+                btn.disabled = false;
+                btn.classList.remove('disabled-btn');
+                btn.style.cursor = 'pointer';
+                showAdminToast("Error: Connection Failed");
+            }
+        });
+      });
+    }
+
+    hijackForm('serveForm');
+    hijackForm('noshowForm');
+    hijackForm('recallForm');
+  </script>
+ <a href="mailto:jayrolldbarreto@gmail.com" class="dev-contact" title="Report a system problem">
+    🛠️ Dev Contact
+</a>
+</a>
+</body>
+</html>

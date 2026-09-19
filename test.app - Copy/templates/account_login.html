@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login (test)</title>
+</head>
+<body>
+    <h1>Log In (test page)</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, msg in messages %}
+          <p><strong>{{ category }}:</strong> {{ msg }}</p>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('account_login') }}">
+        <label>Student Number: <input type="text" name="student_id" required></label><br><br>
+        <label>Password: <input type="password" name="password" required></label><br><br>
+        <button type="submit">Log In</button>
+    </form>
+
+    <p>Don't have an account? <a href="{{ url_for('account_signup') }}">Sign up</a></p>
+</body>
+</html>
