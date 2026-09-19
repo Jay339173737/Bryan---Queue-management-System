@@ -2,7 +2,7 @@ import os
 import sys, io
 from datetime import datetime, timedelta,date
 from flask import Flask, render_template, request, redirect, url_for, flash, session,make_response
-from models import db, AdminUser, QueueCustomer, QueueTicket, SystemConfig,TicketAcknowledgement
+from models import db, AdminUser, QueueCustomer, QueueTicket, SystemConfig,TicketAcknowledgement,AdvancePayment
 from flask_socketio import SocketIO, emit, join_room
 from cli import register_cli_commands
 import socket
@@ -16,7 +16,7 @@ import hashlib
 from services import (fetch_waiting_queue, fetch_active_service, count_todays_tickets,
                       check_ticket_limit, verify_duplicate_ticket, retrieve_or_create_customer,
                       push_queue_update, retrieve_config_value, update_config_value,
-                      require_admin_access)
+                      require_admin_access,)
 
 # ---------- config ----------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -755,10 +755,97 @@ def account_signup():
 def test_ticket_page():
     return render_template("test_ticket.html")
 
+@app.route("/account/pay-advance", methods=["GET", "POST"])
+def pay_advance():
+    if not session.get("authenticated"):
+        flash("Please log in to pay in advance.", "warning")
+        return redirect(url_for("account_login"))
+
+    if request.method == "POST":
+        document_name = (request.form.get("document_name") or "").strip()
+        if not document_name:
+            flash("Please specify a document.", "warning")
+            return redirect(url_for("pay_advance"))
+
+        record = AdvancePayment(
+            customer_id=session["user_id"],
+            document_name=document_name,
+            payment_status="paid",
+        )
+        db.session.add(record)
+        db.session.commit()
+        flash(f"Payment recorded for: {document_name}.", "success")
+        return redirect(url_for("account_dashboard"))
+
+    return render_template("pay_advance.html")
+
+@app.route("/account/activate-payment/<int:payment_id>", methods=["POST"])
+def activate_payment(payment_id):
+    if not session.get("authenticated"):
+        flash("Please log in.", "warning")
+        return redirect(url_for("account_login"))
+
+    # ---------- block if already has an active ticket (NEW) ----------
+    existing_ticket = (QueueTicket.query
+                       .filter(QueueTicket.customer_ref_id == session["user_id"],
+                               QueueTicket.ticket_status.in_(["waiting", "serving"]))
+                       .first())
+    if existing_ticket:
+        flash(f"You already have an active ticket (#{existing_ticket.id}). Please wait for it to be served before activating another.", "warning")
+        return redirect(url_for("customer_portal"))
+
+    advance = AdvancePayment.query.get(payment_id)
+    if not advance or advance.customer_id != session["user_id"]:
+        flash("Payment record not found.", "danger")
+        return redirect(url_for("account_dashboard"))
+
+    if advance.is_used:
+        flash("This payment has already been used for a ticket.", "warning")
+        return redirect(url_for("account_dashboard"))
+
+    advance.is_used = True
+    advance.used_at = datetime.utcnow()
+    db.session.commit()
+
+    customer = QueueCustomer.query.get(session["user_id"])
+    new_ticket = QueueTicket(
+        visit_reason=advance.document_name,
+        customer_ref_id=customer.id,
+        payment_method="advance",
+        payment_status="paid"
+    )
+    db.session.add(new_ticket)
+    db.session.commit()
+
+    session["ticket_message"] = f"✅ Ticket #{new_ticket.id} issued for: {advance.document_name}"
+    session["user_id"] = customer.id
+    resp = make_response(redirect(url_for("customer_portal")))
+    _set_lock(resp, new_ticket.id)
+    push_queue_update(socketio)
+    return resp
+
+@app.route("/account/dashboard")
+def account_dashboard():
+    if not session.get("authenticated"):
+        flash("Please log in.", "warning")
+        return redirect(url_for("account_login"))
+
+    unused_payments = AdvancePayment.query.filter_by(
+        customer_id=session["user_id"], is_used=False
+    ).all()
+    return render_template("account_dashboard.html", payments=unused_payments)
+
 
 # ========================================
 # Application Entry Point
 # ========================================
+
+@app.after_request
+def add_no_cache_headers(response):
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 if __name__ == "__main__":

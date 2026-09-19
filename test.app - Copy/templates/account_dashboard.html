@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>My Dashboard</title></head>
+<body>
+    <h1>My Account (test)</h1>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}{% for category, msg in messages %}<p><strong>{{ category }}:</strong> {{ msg }}</p>{% endfor %}{% endif %}
+    {% endwith %}
+    <h3>Paid Documents (Unused)</h3>
+    {% if payments %}
+      <ul>
+      {% for p in payments %}
+        <li>{{ p.document_name }} (paid {{ p.created_at }})
+          <form method="POST" action="{{ url_for('activate_payment', payment_id=p.id) }}" style="display:inline;">
+            <button type="submit">Activate → Get Ticket</button>
+          </form>
+        </li>
+      {% endfor %}
+      </ul>
+    {% else %}
+      <p>No unused paid documents.</p>
+    {% endif %}
+    <p><a href="{{ url_for('pay_advance') }}">Pay for a document</a></p>
+</body></html>

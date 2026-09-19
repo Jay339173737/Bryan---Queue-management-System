@@ -114,3 +114,16 @@ class TicketAcknowledgement(db.Model):
         return f"<Ack ticket={self.ticket_id} customer={self.customer_id} at={self.ack_time}>"
 
 
+class AdvancePayment(db.Model):
+    """A document paid for before the student shows up for a ticket"""
+    __tablename__ = 'advance_payments'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey('queue_customers.id'), nullable=False)
+    document_name = db.Column(db.String(200), nullable=False)
+    payment_status = db.Column(db.String(20), default='paid')
+    is_used = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    used_at = db.Column(db.DateTime, nullable=True)
+
+    customer = db.relationship('QueueCustomer', backref='advance_payments')

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Pay in Advance</title></head>
+<body>
+    <h1>Pay in Advance (test)</h1>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}{% for category, msg in messages %}<p><strong>{{ category }}:</strong> {{ msg }}</p>{% endfor %}{% endif %}
+    {% endwith %}
+    <form method="POST" action="{{ url_for('pay_advance') }}">
+        <label>Document Name: <input type="text" name="document_name" required></label><br><br>
+        <button type="submit">Pay Now (fake)</button>
+    </form>
+    <p><a href="{{ url_for('account_dashboard') }}">← Back to My Dashboard (see paid documents)</a></p>
+</body></html>
