@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <<h1>🎟️ RISE Dashboard</h1>
+  <h1>🎟️ RISE Dashboard</h1>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/student.css') }}">
   <style>
       #break-banner {
@@ -216,13 +216,11 @@
 
   <button class="help-fab" onclick="openGuide()" title="How to use">?</button>
 
-  <div class="main">
+   <div class="main">
     <div class="header-container">
-      <div class="logo-wrapper">
-        <img src="{{ url_for('static', filename='images/nwssu1.png') }}" alt="NWSSU Logo">
-      </div>
-      <h1>🎟️ RISE Dashboard</h1>
-      <div class="school-name">Northwest Samar State University</div>
+      <div class="brand-mark">Q</div>
+      <h1>QFlow Live Queue</h1>
+      <div class="business-name">Smart Queue Management</div>
     </div>
     
     <p style="text-align: center; color: #64748b; margin-bottom: 24px; font-size: 14px;">Real-time queue updates</p>
@@ -236,14 +234,12 @@
     <div id="announcement-banner" aria-hidden="true" style="display:none;"></div>
 
     {% if ticket_id %}
-      <div class="info-card" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.1) 100%); border-color: rgba(16, 185, 129, 0.4);">
-        <p style="text-align: center; font-size: 16px;"> Your Active Ticket</p>
-        <p style="text-align: center; font-size: 32px; font-weight: 800; color: #10b981; margin: 8px 0;">#{{ ticket_id }}</p>
-        
-        <p id="wait-count" style="text-align: center; color: #f59e0b; font-weight: 600; margin-bottom: 8px; font-size: 14px; min-height: 20px;">Calculating...</p>
-        
-        <p style="text-align: center; font-size: 13px; color: #64748b;">Keep this screen open for real-time updates</p>
-      </div>
+      <div class="info-card" style="background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border-color:#bfdbfe;">
+  <p style="text-align:center;font-size:16px;">Your Active Ticket</p>
+  <p style="text-align:center;font-size:32px;font-weight:800;color:#2563eb;margin:8px 0;">#{{ ticket_id }}</p>
+  <p id="wait-count" style="text-align:center;color:#b45309;font-weight:600;margin-bottom:8px;font-size:14px;min-height:20px;">Calculating...</p>
+  <p style="text-align:center;font-size:13px;color:var(--muted);">Keep this screen open for real-time updates</p>
+</div>
     {% else %}
       <div class="info-card" style="background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3);">
         <p style="text-align: center; color: #f59e0b;">⚠️ No active ticket</p>

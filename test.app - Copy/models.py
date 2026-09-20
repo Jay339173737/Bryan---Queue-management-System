@@ -2,6 +2,7 @@ from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 
+
 db = SQLAlchemy()
 password_hash = db.Column(db.String(255), nullable=True)
 
@@ -123,7 +124,9 @@ class AdvancePayment(db.Model):
     document_name = db.Column(db.String(200), nullable=False)
     payment_status = db.Column(db.String(20), default='paid')
     is_used = db.Column(db.Boolean, default=False)
+    payment_batch_id = db.Column(db.String(36), nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     used_at = db.Column(db.DateTime, nullable=True)
+    price = db.Column(db.Integer, default=0)
 
     customer = db.relationship('QueueCustomer', backref='advance_payments')

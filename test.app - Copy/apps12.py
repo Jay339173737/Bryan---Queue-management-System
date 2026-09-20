@@ -13,6 +13,7 @@ from error_handlers import register_error_handlers
 from itsdangerous import URLSafeSerializer, BadSignature
 import getpass
 import hashlib
+import uuid
 from services import (fetch_waiting_queue, fetch_active_service, count_todays_tickets,
                       check_ticket_limit, verify_duplicate_ticket, retrieve_or_create_customer,
                       push_queue_update, retrieve_config_value, update_config_value,
@@ -166,7 +167,7 @@ def process_ticket_request():
             return redirect(url_for("landing_page"))
 
         # ---------- build final purpose ----------
-        if visit_purpose == "Documents":
+        if visit_purpose == "Document Request":
             docs = request.form.getlist("doc_list")          # list of check-boxes
             if "Other doc" in docs:
                 other = request.form.get("doc_other", "").strip()
@@ -802,8 +803,9 @@ def test_ticket_page():
 def account_logout():
     session.pop("authenticated", None)
     session.pop("user_id", None)
-    flash("You have been logged out.", "success")
-    return redirect(url_for("landing_page"))
+    resp = make_response(redirect(url_for("landing_page")))
+    _clear_lock(resp)
+    return resp
 
 @app.route("/account/dashboard")
 def account_dashboard():
@@ -811,11 +813,23 @@ def account_dashboard():
         flash("Please log in.", "warning")
         return redirect(url_for("account_login"))
 
-    unused_payments = AdvancePayment.query.filter_by(
+    unused_rows = AdvancePayment.query.filter_by(
         customer_id=session["user_id"], is_used=False
-    ).all()
-    return render_template("account_dashboard.html", payments=unused_payments)
+    ).order_by(AdvancePayment.created_at.desc()).all()
 
+    batches = {}
+    for row in unused_rows:
+        if row.payment_batch_id not in batches:
+            batches[row.payment_batch_id] = {
+                "batch_id": row.payment_batch_id,
+                "documents": [],
+                "created_at": row.created_at,
+            }
+        batches[row.payment_batch_id]["documents"].append(row.document_name)
+
+    payment_batches = list(batches.values())
+
+    return render_template("account_dashboard.html", payment_batches=payment_batches)
 
 @app.route("/account/pay-advance", methods=["GET", "POST"])
 def pay_advance():
@@ -824,26 +838,34 @@ def pay_advance():
         return redirect(url_for("account_login"))
 
     if request.method == "POST":
-        document_name = (request.form.get("document_name") or "").strip()
-        if not document_name:
-            flash("Please specify a document.", "warning")
+        selected_documents = request.form.getlist("document_names")
+        selected_prices = request.form.getlist("document_prices")
+
+        if not selected_documents:
+            flash("Please select at least one service.", "warning")
             return redirect(url_for("pay_advance"))
 
-        record = AdvancePayment(
-            customer_id=session["user_id"],
-            document_name=document_name,
-            payment_status="paid",
-        )
-        db.session.add(record)
+        batch_id = str(uuid.uuid4())
+
+        for doc_name, doc_price in zip(selected_documents, selected_prices):
+            record = AdvancePayment(
+                customer_id=session["user_id"],
+                document_name=doc_name,
+                price=int(doc_price),
+                payment_status="paid",
+                payment_batch_id=batch_id,
+            )
+            db.session.add(record)
+
         db.session.commit()
-        flash(f"Payment recorded for: {document_name}.", "success")
+        flash(f"Payment recorded for {len(selected_documents)} service(s).", "success")
         return redirect(url_for("account_dashboard"))
 
     return render_template("pay_advance.html")
 
 
-@app.route("/account/activate-payment/<int:payment_id>", methods=["POST"])
-def activate_payment(payment_id):
+@app.route("/account/activate-batch/<batch_id>", methods=["POST"])
+def activate_payment(batch_id):
     if not session.get("authenticated"):
         flash("Please log in.", "warning")
         return redirect(url_for("account_login"))
@@ -856,22 +878,27 @@ def activate_payment(payment_id):
         flash(f"You already have an active ticket (#{existing_ticket.id}). Please wait for it to be served before activating another.", "warning")
         return redirect(url_for("customer_portal"))
 
-    advance = AdvancePayment.query.get(payment_id)
-    if not advance or advance.customer_id != session["user_id"]:
-        flash("Payment record not found.", "danger")
+    batch_rows = AdvancePayment.query.filter_by(
+        payment_batch_id=batch_id,
+        customer_id=session["user_id"],
+        is_used=False,
+    ).all()
+
+    if not batch_rows:
+        flash("Payment batch not found or already used.", "danger")
         return redirect(url_for("account_dashboard"))
 
-    if advance.is_used:
-        flash("This payment has already been used for a ticket.", "warning")
-        return redirect(url_for("account_dashboard"))
+    document_names = [row.document_name for row in batch_rows]
+    combined_reason = ", ".join(document_names)
 
-    advance.is_used = True
-    advance.used_at = datetime.utcnow()
+    for row in batch_rows:
+        row.is_used = True
+        row.used_at = datetime.utcnow()
     db.session.commit()
 
     customer = QueueCustomer.query.get(session["user_id"])
     new_ticket = QueueTicket(
-        visit_reason=advance.document_name,
+        visit_reason=combined_reason,
         customer_ref_id=customer.id,
         payment_method="advance",
         payment_status="paid"
@@ -879,7 +906,7 @@ def activate_payment(payment_id):
     db.session.add(new_ticket)
     db.session.commit()
 
-    session["ticket_message"] = f"✅ Ticket #{new_ticket.id} issued for: {advance.document_name}"
+    session["ticket_message"] = f"✅ Ticket #{new_ticket.id} issued for: {combined_reason}"
     session["user_id"] = customer.id
     resp = make_response(redirect(url_for("customer_portal")))
     _set_lock(resp, new_ticket.id)

@@ -3,248 +3,50 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <h1>🎟️ RISE Dashboard</h1>
-  {% if session.get('authenticated') %}
-    <p><a href="{{ url_for('account_logout') }}">Log out</a></p>
-  {% endif %}
+  <title>QFlow — Get Your Ticket</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/student.css') }}">
-  <style>
-    /* ---- Break Banner (Fixed at top) ---- */
-    #break-banner {
-        background-color: #f59e0b;
-        color: white;
-        text-align: center;
-        padding: 16px 20px;
-        font-weight: 600;
-        font-size: 1.1rem;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        z-index: 99999;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        display: none;
-        animation: slideDown 0.3s ease-out;
-    }
-    
-    @keyframes slideDown {
-        from { transform: translateY(-100%); }
-        to { transform: translateY(0); }
-    }
-
-    .break-time {
-        font-weight: 800;
-        background: rgba(255,255,255,0.2);
-        padding: 2px 8px;
-        border-radius: 6px;
-        margin-left: 8px;
-    }
-
-    /* ---- Guide Modal & Button Styles ---- */
-    .help-fab {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      width: 56px;
-      height: 56px;
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-      border-radius: 50%;
-      color: white;
-      font-size: 24px;
-      font-weight: 800;
-      border: none;
-      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
-      cursor: pointer;
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .help-fab:active { transform: scale(0.95); }
-    .help-fab:hover { box-shadow: 0 12px 24px rgba(16, 185, 129, 0.5); }
-
-    .guide-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(8px);
-      z-index: 2000;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      animation: fadeIn 0.2s ease-out;
-    }
-
-    .guide-card {
-      background: #1e293b;
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      border-radius: 24px;
-      padding: 32px 24px;
-      max-width: 400px;
-      width: 100%;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-      position: relative;
-    }
-
-    .guide-step {
-      display: flex;
-      gap: 16px;
-      margin-bottom: 24px;
-      align-items: flex-start;
-    }
-    .guide-step:last-child { margin-bottom: 0; }
-
-    .step-number {
-      background: rgba(16, 185, 129, 0.15);
-      color: #10b981;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 800;
-      font-size: 16px;
-      flex-shrink: 0;
-      border: 1px solid rgba(16, 185, 129, 0.2);
-    }
-
-    .step-text h4 { color: #f1f5f9; margin: 0 0 6px 0; font-size: 16px; font-weight: 700; }
-    .step-text p { color: #94a3b8; margin: 0; font-size: 14px; line-height: 1.5; }
-
-    .close-guide {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      background: none;
-      border: none;
-      color: #64748b;
-      font-size: 24px;
-      cursor: pointer;
-      padding: 4px;
-      line-height: 1;
-      transition: color 0.2s;
-    }
-    .close-guide:hover { color: #ef4444; }
-
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-    /* ---- Form Styles ---- */
-    .sub-options {
-      margin: 10px 0 0 34px;          
-      display: none;
-      flex-direction: column;
-      gap: 10px;                      
-    }
-    .sub-options label {
-      font-size: 14px;
-      color: #fff;                    
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    input[type="text"]{transition:transform .2s ease}
-    input[type="text"]:focus{transform:scale(1.01)}
-    #reasonOther {
-      color: #fff;
-      background: rgba(15,23,42,.6);
-      border: 2px solid rgba(100,116,139,.3);
-      border-radius: 14px;
-      padding: 14px 18px;
-      margin-top: 8px;
-      width: 100%;
-      transition: border-color .3s, box-shadow .3s;
-    }
-    #reasonOther::placeholder { color: #94a3b8; }
-    #reasonOther:focus {
-      outline: none;
-      border-color: #10b981;
-      box-shadow: 0 0 0 3px rgba(16,185,129,.35);
-    }
-    
-    /* Alert Styles for Flash Messages */
-    .flash {
-        padding: 1rem;
-        margin-bottom: 1rem;
-        border-radius: 0.5rem;
-        font-weight: 500;
-    }
-    .flash.warning {
-        background-color: rgba(245, 158, 11, 0.1);
-        color: #f59e0b;
-        border: 1px solid rgba(245, 158, 11, 0.2);
-    }
-    .flash.danger {
-        background-color: rgba(239, 68, 68, 0.1);
-        color: #ef4444;
-        border: 1px solid rgba(239, 68, 68, 0.2);
-    }
-    .flash.success {
-        background-color: rgba(16, 185, 129, 0.1);
-        color: #10b981;
-        border: 1px solid rgba(16, 185, 129, 0.2);
-    }
-    .flash a:hover {
-        color: white; 
-    }
-  </style>
 </head>
 <body>
-  <div class="team-watermark">Powered by Lipbyte</div>
+  <div class="team-watermark">Powered by QFlow</div>
+
   {% if resume_time %}
-    <div id="break-banner" style="display: block;">
-        ☕ We are on a short break. Resuming at <span id="banner-time" class="break-time">{{ resume_time }}</span>
+    <div id="break-banner" style="display:block;">
+      ☕ We're on a short break. Resuming at <span id="banner-time" class="break-time">{{ resume_time }}</span>
     </div>
   {% else %}
-    <div id="break-banner" style="display: none;">
-        ☕ We are on a short break. Resuming at <span id="banner-time" class="break-time"></span>
+    <div id="break-banner" style="display:none;">
+      ☕ We're on a short break. Resuming at <span id="banner-time" class="break-time"></span>
     </div>
   {% endif %}
 
+  <!-- Guide Modal -->
   <div id="guideModal" class="guide-overlay" onclick="closeGuide(event)">
     <div class="guide-card">
       <button class="close-guide" onclick="closeGuide(event)">×</button>
-      <h3 style="text-align: center; color: #10b981; margin-bottom: 24px; font-size: 20px;">How to Get a Ticket</h3>
-      
+      <h3>How It Works</h3>
       <div class="guide-step">
         <div class="step-number">1</div>
-        <div class="step-text">
-          <h4>Select User Type</h4>
-          <p>Choose if you are a <strong>Student</strong> or <strong>Guest</strong> to enable the form fields.</p>
-        </div>
+        <div class="step-text"><h4>Tell Us Who You Are</h4><p>Choose <strong>Member</strong> (with an account ID) or <strong>Visitor</strong>.</p></div>
       </div>
-      
       <div class="guide-step">
         <div class="step-number">2</div>
-        <div class="step-text">
-          <h4>Fill Information</h4>
-          <p>Enter your name (and Student ID if applicable) and select your reason for visiting.</p>
-        </div>
+        <div class="step-text"><h4>Select a Service</h4><p>Enter your name and pick what you need help with.</p></div>
       </div>
-      
       <div class="guide-step">
         <div class="step-number">3</div>
-        <div class="step-text">
-          <h4>Get Ticket</h4>
-          <p>Tap "Get My Ticket" and wait for your number to be called on the screen.</p>
-        </div>
+        <div class="step-text"><h4>Get Your Ticket</h4><p>Tap "Get My Ticket" and watch the screen for your number.</p></div>
       </div>
     </div>
   </div>
-
   <button class="help-fab" onclick="openGuide()" title="How to use">?</button>
 
   <div class="main">
     <div class="header-container">
-      <div class="logo-wrapper">
-        <img src="{{ url_for('static', filename='images/nwssu1.png') }}" alt="NWSSU Logo">
-      </div>
-      <h1>🎟️ RISE (QMS)</h1>
-      <div class="school-name">Northwest Samar State University</div>
+      <div class="brand-mark">Q</div>
+      <h1>QFlow</h1>
+      <div class="business-name">Smart Queue Management</div>
     </div>
-    <p style="text-align: center; color: #64748b; margin-bottom: 24px; font-size: 14px;">Get your ticket and wait comfortably</p>
+    <p style="text-align:center;color:var(--muted);margin-bottom:6px;font-size:14px;">Get your ticket and wait comfortably</p>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -258,285 +60,195 @@
       <h3>Get Your Ticket</h3>
 
       {% if session.get('authenticated') %}
-  <p id="nameDisplay">
-    Requesting as: <strong id="nameText">{{ session_customer_name }}</strong> ({{ session_customer_id }})
-    <a href="#" id="editPenBtn" title="Edit name">✏️</a>
-  </p>
-  <p id="nameEditRow" style="display:none;">
-    <input type="text" id="editFirstName" value="{{ session_customer_firstname }}" style="width:100px;">
-    <input type="text" id="editLastName" value="{{ session_customer_lastname }}" style="width:100px;">
-    <a href="#" id="saveNameBtn">✔️</a>
-    <a href="#" id="cancelNameBtn">✖️</a>
-  </p>
-{% else %}
-  <div class="radio-group">
-    <label>
-      <input type="radio" name="user_type" value="student" required>
-      <span> Student</span>
-    </label>
-    <label>
-      <input type="radio" name="user_type" value="guest" required>
-      <span> Guest</span>
-    </label>
-  </div>
-
-  <div id="studentFields" style="display:none;">
-    <input type="text" name="first_name" placeholder="First Name" disabled>
-    <input type="text" name="last_name" placeholder="Last Name" disabled> 
-    <input type="text" name="student_id" placeholder="Student ID" disabled>
-  </div>
-
-  <div id="guestFields" style="display:none;">
-    <input type="text" name="first_name" placeholder="First Name" disabled>
-    <input type="text" name="last_name" placeholder="Last Name" disabled>
-  </div>
-  {% endif %}
-
-        <label class="request-type-label">What do you need?</label>
-        <div class="request-options">
+        <p id="nameDisplay">
+          Requesting as: <strong id="nameText">{{ session_customer_name }}</strong> ({{ session_customer_id }})
+          <a href="#" id="editPenBtn" title="Edit name">✏️</a>
+          · <a href="{{ url_for('account_logout') }}" title="Not you? Log out">🚪 Not you? Log out</a>
+        </p>
+        <p id="nameEditRow" style="display:none;">
+          <input type="text" id="editFirstName" value="{{ session_customer_firstname }}" style="width:45%;display:inline-block;">
+          <input type="text" id="editLastName" value="{{ session_customer_lastname }}" style="width:45%;display:inline-block;">
+          <a href="#" id="saveNameBtn">✔️</a>
+          <a href="#" id="cancelNameBtn">✖️</a>
+        </p>
+      {% else %}
+        <div class="radio-group">
           <label>
-            <input type="radio" name="reason" value="Enrollment" required>
-            <span>📝 Enrollment</span>
+            <input type="radio" name="user_type" value="student" required>
+            <span>👤 Member</span>
           </label>
-
-        <label>
-          <input type="radio" name="reason" value="Documents" required>
-          <span>📄 Documents</span>
-        </label>
-        <div id="docChoices" class="sub-options">
-          <label><input type="checkbox" name="doc_list" value="COR"> Certificate of Registration (COR)</label>
-          <label><input type="checkbox" name="doc_list" value="Diploma"> Diploma</label>
-          <label><input type="checkbox" name="doc_list" value="Transcript of Records"> Transcript of Records</label>
-          <label><input type="checkbox" name="doc_list" value="Honorable Dismissal"> Honorable Dismissal</label>
-          <label><input type="checkbox" name="doc_list" value="CAV"> CAV (Authentication)</label>
-          <label><input type="checkbox" name="doc_list" value="Form 137"> Form 137</label>
+          <label>
+            <input type="radio" name="user_type" value="guest" required>
+            <span>🚶 Visitor</span>
+          </label>
         </div>
 
+        <div id="studentFields" style="display:none;">
+          <input type="text" name="first_name" placeholder="First Name" disabled>
+          <input type="text" name="last_name" placeholder="Last Name" disabled>
+          <input type="text" name="student_id" placeholder="Account / Member ID" disabled>
+        </div>
+
+        <div id="guestFields" style="display:none;">
+          <input type="text" name="first_name" placeholder="First Name" disabled>
+          <input type="text" name="last_name" placeholder="Last Name" disabled>
+        </div>
+      {% endif %}
+
+      <label class="request-type-label">What do you need?</label>
+      <div class="request-options">
+        <label>
+          <input type="radio" name="reason" value="Consultation" required>
+          <span>💼 Consultation</span>
+        </label>
+        <label>
+          <input type="radio" name="reason" value="Payment / Transaction" required>
+          <span>💳 Payment / Transaction</span>
+        </label>
+        <label>
+          <input type="radio" name="reason" value="Document Request" required>
+          <span>📄 Document Request</span>
+        </label>
+        <div id="docChoices" class="sub-options">
+          <label><input type="checkbox" name="doc_list" value="Certificate"> Certificate</label>
+          <label><input type="checkbox" name="doc_list" value="Invoice / Receipt"> Invoice / Receipt</label>
+          <label><input type="checkbox" name="doc_list" value="Contract"> Contract</label>
+          <label><input type="checkbox" name="doc_list" value="Report"> Report</label>
+          <label><input type="checkbox" name="doc_list" value="Other Document"> Other Document</label>
+        </div>
         <label>
           <input type="radio" name="reason" value="Other" required>
-          <span>💬 Other (please specify)</span>
+          <span>💬 Other</span>
         </label>
       </div>
 
-      <input type="text" name="reason_other" id="reasonOther" placeholder="Please specify your reason" style="display:none; margin-top:8px;">
+      <input type="text" name="reason_other" id="reasonOther" placeholder="Please specify your reason" style="display:none;">
 
       <label class="request-type-label">Payment Method</label>
       <div class="radio-group">
         <label>
           <input type="radio" name="payment_method" value="cash" checked>
-          <span>💵 Cash (pay at window)</span>
+          <span>💵 Cash (pay at counter)</span>
         </label>
         <label>
           <input type="radio" name="payment_method" value="online">
           <span>💳 Pay Online — Create a free account</span>
         </label>
       </div>
+
       <button type="submit">Get My Ticket</button>
     </form>
 
-    <p style="text-align:center; margin-top:20px;">
+    <p style="text-align:center;margin-top:20px;font-size:14px;">
       Already have a ticket? <a href="{{ url_for('recover_ticket') }}">Recover your ticket</a>
     </p>
   </div>
-  
 
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script>
-    /* ---------- Guide Modal Logic ---------- */
-    function openGuide() {
-      document.getElementById('guideModal').style.display = 'flex';
-    }
-    function closeGuide(e) {
-      if (e.target === document.getElementById('guideModal') || 
-          e.target.classList.contains('close-guide')) {
-        document.getElementById('guideModal').style.display = 'none';
+    /* Guide modal */
+    function openGuide(){document.getElementById('guideModal').style.display='flex';}
+    function closeGuide(e){
+      if(e.target===document.getElementById('guideModal')||e.target.classList.contains('close-guide')){
+        document.getElementById('guideModal').style.display='none';
       }
     }
 
-    /* ---------- Socket Connection for Banner ---------- */
+    /* Socket: break banner */
     const socket = io(window.location.origin, { transports: ["websocket"], cors: { origin: "*" } });
 
-    // Helper: Format Time
-    function formatTime(timeString) {
-      if (!timeString) return "";
-      if (timeString.includes("M")) return timeString; 
-      
-      const [hour, minute] = timeString.split(":");
-      const h = parseInt(hour, 10);
-      const ampm = h >= 12 ? 'PM' : 'AM';
-      const h12 = h % 12 || 12;
-      return `${h12}:${minute} ${ampm}`;
+    function formatTime(t){
+      if(!t) return "";
+      if(t.includes("M")) return t;
+      const [h,m]=t.split(":"); const hr=parseInt(h,10);
+      return `${hr%12||12}:${m} ${hr>=12?'PM':'AM'}`;
     }
-
-    // Helper: Body Padding
-    function adjustBodyPadding(isVisible) {
-        const banner = document.getElementById('break-banner');
-        if (isVisible && banner) {
-            const height = banner.offsetHeight || 60; 
-            document.body.style.paddingTop = height + "px";
-        } else {
-            document.body.style.paddingTop = "0px";
-        }
+    function adjustBodyPadding(v){
+      const b=document.getElementById('break-banner');
+      document.body.style.paddingTop = (v&&b) ? (b.offsetHeight||56)+"px" : "0px";
     }
-
-    // On Load
-    window.addEventListener('load', () => {
-        const banner = document.getElementById('break-banner');
-        const timeSpan = document.getElementById('banner-time');
-        
-        if (timeSpan && timeSpan.textContent.trim()) {
-             timeSpan.textContent = formatTime(timeSpan.textContent.trim());
-        }
-        if (banner && banner.style.display !== 'none') {
-            adjustBodyPadding(true);
-        }
+    window.addEventListener('load',()=>{
+      const b=document.getElementById('break-banner'), s=document.getElementById('banner-time');
+      if(s && s.textContent.trim()) s.textContent=formatTime(s.textContent.trim());
+      if(b && b.style.display!=='none') adjustBodyPadding(true);
+    });
+    socket.on('break_announcement',(d)=>{
+      const b=document.getElementById('break-banner'), s=document.getElementById('banner-time');
+      if(d.active && d.time){ s.textContent=formatTime(d.time); b.style.display='block'; adjustBodyPadding(true); }
+      else { b.style.display='none'; adjustBodyPadding(false); }
     });
 
-    // On Socket Event
-    socket.on('break_announcement', (data) => {
-        const banner = document.getElementById('break-banner');
-        const timeSpan = document.getElementById('banner-time');
-        
-        if (data.active && data.time) {
-            timeSpan.textContent = formatTime(data.time);
-            banner.style.display = 'block';
-            adjustBodyPadding(true); 
-        } else {
-            banner.style.display = 'none';
-            adjustBodyPadding(false); 
-        }
-    });
+    /* Member / Visitor toggle (values kept for backend compatibility) */
+    const studentFields=document.getElementById("studentFields");
+    const guestFields=document.getElementById("guestFields");
+    const studentInputs=studentFields?studentFields.querySelectorAll("input"):[];
+    const guestInputs=guestFields?guestFields.querySelectorAll("input"):[];
 
-    /* ---------- student / guest toggle ---------- */
-    const studentFields = document.getElementById("studentFields");
-    const guestFields   = document.getElementById("guestFields");
-    const studentInputs = studentFields ? studentFields.querySelectorAll("input") : [];
-    const guestInputs   = guestFields ? guestFields.querySelectorAll("input") : [];
-
-    function setMode(mode) {
-      if (mode === "student") {
-        studentFields.style.display = "block";
-        guestFields.style.display   = "none";
-        studentInputs.forEach(i => { i.disabled = false; i.required = true; });
-        guestInputs.forEach(i   => { i.disabled = true;  i.required = false; i.value = ""; });
-      } else if (mode === "guest") {
-        studentFields.style.display = "none";
-        guestFields.style.display   = "block";
-        studentInputs.forEach(i => { i.disabled = true;  i.required = false; i.value = ""; });
-        guestInputs.forEach(i   => { i.disabled = false; i.required = true; });
+    function setMode(mode){
+      if(mode==="student"){
+        studentFields.style.display="block"; guestFields.style.display="none";
+        studentInputs.forEach(i=>{i.disabled=false;i.required=true;});
+        guestInputs.forEach(i=>{i.disabled=true;i.required=false;i.value="";});
+      } else if(mode==="guest"){
+        studentFields.style.display="none"; guestFields.style.display="block";
+        studentInputs.forEach(i=>{i.disabled=true;i.required=false;i.value="";});
+        guestInputs.forEach(i=>{i.disabled=false;i.required=true;});
       }
     }
-    document.querySelectorAll("input[name='user_type']").forEach(radio => {
-      radio.addEventListener("change", function () { setMode(this.value); });
+    document.querySelectorAll("input[name='user_type']").forEach(r=>r.addEventListener("change",function(){setMode(this.value);}));
+
+    /* Document sub-options toggle-off on re-click */
+    const docRadio=document.querySelector('input[value="Document Request"]');
+    const docChoices=document.getElementById('docChoices');
+    if(docRadio){
+      docRadio.addEventListener('click',function(){
+        if(this.dataset.checked==="true"){
+          this.checked=false; this.dataset.checked="false";
+          docChoices.style.display='none';
+          docChoices.querySelectorAll('input[type="checkbox"]').forEach(cb=>cb.checked=false);
+        } else { this.dataset.checked="true"; docChoices.style.display='flex'; }
+      });
+      docRadio.addEventListener('change',function(){ if(!this.checked) this.dataset.checked="false"; });
+    }
+
+    /* Other reason field */
+    const reasonRadios=document.querySelectorAll("input[name='reason']");
+    const reasonOther=document.getElementById('reasonOther');
+    reasonRadios.forEach(r=>r.addEventListener('change',()=>{
+      const val=document.querySelector("input[name='reason']:checked")?.value;
+      if(val==='Other'){ reasonOther.value=''; reasonOther.style.display='block'; reasonOther.required=true; }
+      else { reasonOther.style.display='none'; reasonOther.required=false; reasonOther.value=''; }
+    }));
+
+    /* Inline name editing */
+    document.getElementById('editPenBtn')?.addEventListener('click',function(e){
+      e.preventDefault();
+      document.getElementById('nameDisplay').style.display='none';
+      document.getElementById('nameEditRow').style.display='block';
     });
-
-    /* ---------- documents check-list + toggle on same radio ---------- */
-    const docRadio   = document.querySelector('input[value="Documents"]');
-    const docChoices = document.getElementById('docChoices');
-
-        if (docRadio) {
-    docRadio.addEventListener('click', function () {
-      if (this.dataset.checked === "true") {
-        this.checked = false;
-        this.dataset.checked = "false";
-        docChoices.style.display = 'none';
-        docChoices.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-      } else {
-        this.dataset.checked = "true";
-        docChoices.style.display = 'flex';
-      }
-      
+    document.getElementById('cancelNameBtn')?.addEventListener('click',function(e){
+      e.preventDefault();
+      document.getElementById('nameEditRow').style.display='none';
+      document.getElementById('nameDisplay').style.display='block';
     });
-    docRadio.addEventListener('change', function () {
-      if (!this.checked) this.dataset.checked = "false";
-    });
-  }
-
-    /* ---------- generic Other ---------- */
-    const reasonRadios = document.querySelectorAll("input[name='reason']");
-    const reasonOther  = document.getElementById('reasonOther');
-
-    reasonRadios.forEach(radio => {
-      radio.addEventListener('change', () => {
-        const val = document.querySelector("input[name='reason']:checked")?.value;
-        if (val === 'Other') {
-          reasonOther.value = '';
-          reasonOther.style.display = 'block';
-          reasonOther.required = true;
-        } else {
-          reasonOther.style.display = 'none';
-          reasonOther.required = false;
-          reasonOther.value = '';
-        }
+    document.getElementById('saveNameBtn')?.addEventListener('click',function(e){
+      e.preventDefault();
+      const first=document.getElementById('editFirstName').value.trim();
+      const last=document.getElementById('editLastName').value.trim();
+      fetch("{{ url_for('edit_name') }}",{
+        method:"POST",
+        headers:{"Content-Type":"application/x-www-form-urlencoded","X-Requested-With":"XMLHttpRequest"},
+        body:`first_name=${encodeURIComponent(first)}&last_name=${encodeURIComponent(last)}`
+      })
+      .then(r=>r.json())
+      .then(data=>{
+        if(data.success){
+          document.getElementById('nameText').textContent=data.full_name;
+          document.getElementById('nameEditRow').style.display='none';
+          document.getElementById('nameDisplay').style.display='block';
+        } else { alert(data.message||"Error updating name."); }
       });
     });
-// --- CONTACT MODAL LOGIC ---
-    function openContact() {
-      const modal = document.getElementById('contactModal');
-      if (modal) modal.style.display = 'flex';
-    }
-    
-    function closeContact(e) {
-      // Close if clicked the "X" button OR the dark background
-      if (e.target.id === 'contactModal' || e.target.classList.contains('close-guide')) {
-        document.getElementById('contactModal').style.display = 'none';
-      }
-    }
-
-    document.getElementById('editPenBtn')?.addEventListener('click', function(e){
-    e.preventDefault();
-    document.getElementById('nameDisplay').style.display = 'none';
-    document.getElementById('nameEditRow').style.display = 'block';
-});
-document.getElementById('cancelNameBtn')?.addEventListener('click', function(e){
-    e.preventDefault();
-    document.getElementById('nameEditRow').style.display = 'none';
-    document.getElementById('nameDisplay').style.display = 'block';
-});
-document.getElementById('saveNameBtn')?.addEventListener('click', function(e){
-    e.preventDefault();
-    const first = document.getElementById('editFirstName').value.trim();
-    const last = document.getElementById('editLastName').value.trim();
-    fetch("{{ url_for('edit_name') }}", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-Requested-With": "XMLHttpRequest"
-        },
-        body: `first_name=${encodeURIComponent(first)}&last_name=${encodeURIComponent(last)}`
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            document.getElementById('nameText').textContent = data.full_name;
-            document.getElementById('nameEditRow').style.display = 'none';
-            document.getElementById('nameDisplay').style.display = 'block';
-        } else {
-            alert(data.message || "Error updating name.");
-        }
-    });
-});
   </script>
-<div id="contactModal" class="guide-overlay" style="z-index: 12000;" onclick="closeContact(event)">
-  <div class="guide-card" style="max-width: 360px; text-align: center;">
-    <button class="close-guide" onclick="closeContact(event)">&times;</button>
-    
-    <div class="guide-title" style="margin-bottom: 16px; font-size: 20px;">Contact Problems</div>
-    
-    <p style="color: #94a3b8; margin-bottom: 20px; font-size: 14px; line-height: 1.5;">
-      If you encounter any system issues or bugs, please reach out to the developer:
-    </p>
-    
-    <div style="background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 14px; border-radius: 12px; font-family: monospace; font-size: 13px; border: 1px dashed #10b981; word-break: break-all;">
-      jayrolldbarreto@gmail.com
-    </div>
-  </div>
-</div>
-
-<div class="dev-contact" onclick="openContact()" title="Contact Problems">
-    📞
-</div>
-</div>
-</a>
 </body>
 </html>

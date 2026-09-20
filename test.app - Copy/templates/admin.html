@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NWSSU TapIn Queue System - Admin</title>
+  <title>N>QFlow — Admin Dashboard</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -50,19 +50,23 @@
 
 <body>
   <div class="dashboard">
-    <aside class="sidebar">
+        <aside class="sidebar">
       <div class="logo-container">
-        <img src="{{ url_for('static', filename='images/nwssu1.png') }}" 
-             alt="NWSSU Logo" 
+        <img src="{{ url_for('static', filename='images/logo.png') }}"
+             alt="Logo" style="display:none;"
              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-        <div class="logo-fallback" style="display: none;">NW</div>
+        <div class="logo-fallback">Q</div>
       </div>
-      
       <h2>Admin Panel</h2>
       <a href="{{ url_for('admin_control_panel') }}" class="sidebar__link active">Overview</a>
       <a href="{{ url_for('view_ticket_history') }}" class="sidebar__link">History</a>
       <a href="{{ url_for('admin_logout') }}" class="sidebar__link logout">Logout</a>
     </aside>
+
+    <main class="main">
+      <div class="header">
+        <h2>QFlow Queue Dashboard</h2>
+      </div>
 
     <main class="main">
       <div class="header">
