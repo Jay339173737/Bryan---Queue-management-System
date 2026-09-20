@@ -1,7 +1,7 @@
 import os
 import sys, io
 from datetime import datetime, timedelta,date
-from flask import Flask, render_template, request, redirect, url_for, flash, session,make_response
+from flask import Flask, render_template, request, redirect, url_for, flash, session, make_response, jsonify
 from models import db, AdminUser, QueueCustomer, QueueTicket, SystemConfig,TicketAcknowledgement,AdvancePayment
 from flask_socketio import SocketIO, emit, join_room
 from cli import register_cli_commands
@@ -21,7 +21,7 @@ from services import (fetch_waiting_queue, fetch_active_service, count_todays_ti
 # ---------- config ----------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", secrets.token_hex(16))
+app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "48f48f54e4f5a3e3870b3c1fc0abb86c")
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.join(BASE_DIR, "queue.db")}'
 
 # --- ADD THIS BLOCK TO FIX THE CRASH ---
@@ -109,9 +109,26 @@ def landing_page():
             session["user_id"] = QueueTicket.query.get(tid).customer_ref_id
             return redirect(url_for("customer_portal"))
             
-    # --- ADDED: Fetch resume time for landing page ---
+       # --- ADDED: Fetch resume time for landing page ---
     resume_time = retrieve_config_value('resume_time_display', '')
-    return render_template("home.html", resume_time=resume_time)
+
+    session_customer_name = None
+    session_customer_id = None
+    session_customer_firstname = None
+    session_customer_lastname = None
+    if session.get("authenticated"):
+        customer = QueueCustomer.query.get(session["user_id"])
+        if customer:
+            session_customer_name = customer.get_display_name()
+            session_customer_id = customer.student_number
+            session_customer_firstname = customer.firstname
+            session_customer_lastname = customer.lastname
+
+    return render_template("home.html", resume_time=resume_time,
+                            session_customer_name=session_customer_name,
+                            session_customer_id=session_customer_id,
+                            session_customer_firstname=session_customer_firstname,
+                            session_customer_lastname=session_customer_lastname)
 
 @app.route("/get_ticket", methods=["POST"])
 def process_ticket_request():
@@ -123,10 +140,25 @@ def process_ticket_request():
     bypass_warning = request.form.get("force", "false").lower() in ("1", "true", "yes")
 
     try:
-        student_id    = (request.form.get("student_id") or "").strip() or None
-        given_name    = (request.form.get("first_name")  or "").strip() or None
-        family_name   = (request.form.get("last_name")   or "").strip() or None
+        # ---------- identity: from account if logged in, else from form ----------
+        if session.get("authenticated"):
+            customer_record = QueueCustomer.query.get(session["user_id"])
+            if not customer_record:
+                flash("Account error. Please log in again.", "danger")
+                return redirect(url_for("account_login"))
+            customer_type = "student"
+            student_id = customer_record.student_number
+            given_name = customer_record.firstname
+            family_name = customer_record.lastname
+        else:
+            customer_type = request.form.get("user_type", "").strip().lower()
+            student_id    = (request.form.get("student_id") or "").strip() or None
+            given_name    = (request.form.get("first_name")  or "").strip() or None
+            family_name   = (request.form.get("last_name")   or "").strip() or None
+
+        bypass_warning = request.form.get("force", "false").lower() in ("1", "true", "yes")
         visit_purpose = request.form.get("reason", "").strip()
+        
 
         # ---------- basic validation ----------
         if customer_type not in ("student", "guest"):
@@ -160,7 +192,9 @@ def process_ticket_request():
 
         if payment_method == "online":
             if not session.get("authenticated"):
-                flash("Online payment requires an account. Please sign up or log in.", "warning")
+                signup_url = url_for("account_signup")
+                msg = Markup(f'Online payment needs a free account. <a href="{signup_url}" style="color: inherit; text-decoration: underline; font-weight: bold;">Sign up here</a> — it only takes a minute!')
+                flash(msg, "warning")
                 return redirect(url_for("landing_page"))
             payment_status = "paid"
         else:
@@ -179,18 +213,18 @@ def process_ticket_request():
             session["ticket_message"] = "⚠️  Today's ticket quota has been reached. Please return tomorrow."
             return redirect(url_for("customer_portal"))
 
-        # ---------- get or create customer ----------
-        customer_record = None
-        try:
-            customer_record = retrieve_or_create_customer(customer_type, student_id, given_name, family_name)
-        except IntegrityError:
-            flash("An account with that student number already exists. If this is an error, please contact the office.", "danger")
-            return redirect(url_for("landing_page"))
+       
+        # ---------- get or create customer (SKIP if already logged in) ----------
+        if not session.get("authenticated"):
+            try:
+                customer_record = retrieve_or_create_customer(customer_type, student_id, given_name, family_name)
+            except IntegrityError:
+                flash("An account with that student number already exists. If this is an error, please contact the office.", "danger")
+                return redirect(url_for("landing_page"))
 
-        if not customer_record:
-            flash("Unable to register or find customer record.", "danger")
-            return redirect(url_for("landing_page"))
-
+            if not customer_record:
+                flash("Unable to register or find customer record.", "danger")
+                return redirect(url_for("landing_page"))
     
         existing_ticket = (QueueTicket.query
                            .filter(QueueTicket.customer_ref_id == customer_record.id,
@@ -721,9 +755,18 @@ def account_signup():
         given_name = (request.form.get("first_name") or "").strip()
         family_name = (request.form.get("last_name") or "").strip()
         password = request.form.get("password") or ""
+        confirm_password = request.form.get("confirm_password") or ""
 
         if not student_number or not password:
             flash("Student number and password are required.", "warning")
+            return redirect(url_for("account_signup"))
+
+        if password != confirm_password:
+            flash("Passwords do not match.", "danger")
+            return redirect(url_for("account_signup"))
+
+        if len(password) < 6:
+            flash("Password must be at least 6 characters.", "warning")
             return redirect(url_for("account_signup"))
 
         existing = QueueCustomer.query.filter_by(student_number=student_number).first()
@@ -755,6 +798,25 @@ def account_signup():
 def test_ticket_page():
     return render_template("test_ticket.html")
 
+@app.route("/account/logout")
+def account_logout():
+    session.pop("authenticated", None)
+    session.pop("user_id", None)
+    flash("You have been logged out.", "success")
+    return redirect(url_for("landing_page"))
+
+@app.route("/account/dashboard")
+def account_dashboard():
+    if not session.get("authenticated"):
+        flash("Please log in.", "warning")
+        return redirect(url_for("account_login"))
+
+    unused_payments = AdvancePayment.query.filter_by(
+        customer_id=session["user_id"], is_used=False
+    ).all()
+    return render_template("account_dashboard.html", payments=unused_payments)
+
+
 @app.route("/account/pay-advance", methods=["GET", "POST"])
 def pay_advance():
     if not session.get("authenticated"):
@@ -779,13 +841,13 @@ def pay_advance():
 
     return render_template("pay_advance.html")
 
+
 @app.route("/account/activate-payment/<int:payment_id>", methods=["POST"])
 def activate_payment(payment_id):
     if not session.get("authenticated"):
         flash("Please log in.", "warning")
         return redirect(url_for("account_login"))
 
-    # ---------- block if already has an active ticket (NEW) ----------
     existing_ticket = (QueueTicket.query
                        .filter(QueueTicket.customer_ref_id == session["user_id"],
                                QueueTicket.ticket_status.in_(["waiting", "serving"]))
@@ -824,17 +886,39 @@ def activate_payment(payment_id):
     push_queue_update(socketio)
     return resp
 
-@app.route("/account/dashboard")
-def account_dashboard():
+@app.route("/account/edit-name", methods=["GET", "POST"])
+def edit_name():
     if not session.get("authenticated"):
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify(success=False, message="Not logged in."), 401
         flash("Please log in.", "warning")
         return redirect(url_for("account_login"))
 
-    unused_payments = AdvancePayment.query.filter_by(
-        customer_id=session["user_id"], is_used=False
-    ).all()
-    return render_template("account_dashboard.html", payments=unused_payments)
+    customer = QueueCustomer.query.get(session["user_id"])
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
 
+    if request.method == "POST":
+        given_name = (request.form.get("first_name") or "").strip()
+        family_name = (request.form.get("last_name") or "").strip()
+
+        if not given_name or not family_name:
+            if is_ajax:
+                return jsonify(success=False, message="Both first and last name are required.")
+            flash("Both first and last name are required.", "warning")
+            return redirect(url_for("edit_name"))
+
+        customer.firstname = given_name
+        customer.lastname = family_name
+        customer.fullname = f"{given_name} {family_name}"
+        db.session.commit()
+
+        if is_ajax:
+            return jsonify(success=True, full_name=customer.get_display_name())
+
+        flash("Name updated successfully.", "success")
+        return redirect(url_for("landing_page"))
+
+    return render_template("edit_name.html", customer=customer)
 
 # ========================================
 # Application Entry Point

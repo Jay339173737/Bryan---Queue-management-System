@@ -2,6 +2,8 @@
 <html><head><meta charset="UTF-8"><title>My Dashboard</title></head>
 <body>
     <h1>My Account (test)</h1>
+
+    <p><a href="{{ url_for('account_logout') }}">Log out</a></p>
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}{% for category, msg in messages %}<p><strong>{{ category }}:</strong> {{ msg }}</p>{% endfor %}{% endif %}
     {% endwith %}

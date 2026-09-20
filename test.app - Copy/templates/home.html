@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🎟️ Get Your Ticket</title>
+  <h1>🎟️ RISE Dashboard</h1>
+  {% if session.get('authenticated') %}
+    <p><a href="{{ url_for('account_logout') }}">Log out</a></p>
+  {% endif %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/student.css') }}">
   <style>
     /* ---- Break Banner (Fixed at top) ---- */
@@ -254,34 +257,47 @@
     <form method="POST" action="{{ url_for('process_ticket_request') }}">
       <h3>Get Your Ticket</h3>
 
-      <div class="radio-group">
-        <label>
-          <input type="radio" name="user_type" value="student" required>
-          <span> Student</span>
-        </label>
-        <label>
-          <input type="radio" name="user_type" value="guest" required>
-          <span> Guest</span>
-        </label>
-      </div>
+      {% if session.get('authenticated') %}
+  <p id="nameDisplay">
+    Requesting as: <strong id="nameText">{{ session_customer_name }}</strong> ({{ session_customer_id }})
+    <a href="#" id="editPenBtn" title="Edit name">✏️</a>
+  </p>
+  <p id="nameEditRow" style="display:none;">
+    <input type="text" id="editFirstName" value="{{ session_customer_firstname }}" style="width:100px;">
+    <input type="text" id="editLastName" value="{{ session_customer_lastname }}" style="width:100px;">
+    <a href="#" id="saveNameBtn">✔️</a>
+    <a href="#" id="cancelNameBtn">✖️</a>
+  </p>
+{% else %}
+  <div class="radio-group">
+    <label>
+      <input type="radio" name="user_type" value="student" required>
+      <span> Student</span>
+    </label>
+    <label>
+      <input type="radio" name="user_type" value="guest" required>
+      <span> Guest</span>
+    </label>
+  </div>
 
-      <div id="studentFields" style="display:none;">
-        <input type="text" name="first_name" placeholder="First Name" disabled>
-        <input type="text" name="last_name" placeholder="Last Name" disabled>
-        <input type="text" name="student_id" placeholder="Student ID" disabled>
-      </div>
+  <div id="studentFields" style="display:none;">
+    <input type="text" name="first_name" placeholder="First Name" disabled>
+    <input type="text" name="last_name" placeholder="Last Name" disabled> 
+    <input type="text" name="student_id" placeholder="Student ID" disabled>
+  </div>
 
-      <div id="guestFields" style="display:none;">
-        <input type="text" name="first_name" placeholder="First Name" disabled>
-        <input type="text" name="last_name" placeholder="Last Name" disabled>
-      </div>
+  <div id="guestFields" style="display:none;">
+    <input type="text" name="first_name" placeholder="First Name" disabled>
+    <input type="text" name="last_name" placeholder="Last Name" disabled>
+  </div>
+  {% endif %}
 
-      <label class="request-type-label">What do you need?</label>
-      <div class="request-options">
-        <label>
-          <input type="radio" name="reason" value="Enrollment" required>
-          <span>📝 Enrollment</span>
-        </label>
+        <label class="request-type-label">What do you need?</label>
+        <div class="request-options">
+          <label>
+            <input type="radio" name="reason" value="Enrollment" required>
+            <span>📝 Enrollment</span>
+          </label>
 
         <label>
           <input type="radio" name="reason" value="Documents" required>
@@ -304,6 +320,17 @@
 
       <input type="text" name="reason_other" id="reasonOther" placeholder="Please specify your reason" style="display:none; margin-top:8px;">
 
+      <label class="request-type-label">Payment Method</label>
+      <div class="radio-group">
+        <label>
+          <input type="radio" name="payment_method" value="cash" checked>
+          <span>💵 Cash (pay at window)</span>
+        </label>
+        <label>
+          <input type="radio" name="payment_method" value="online">
+          <span>💳 Pay Online — Create a free account</span>
+        </label>
+      </div>
       <button type="submit">Get My Ticket</button>
     </form>
 
@@ -383,8 +410,8 @@
     /* ---------- student / guest toggle ---------- */
     const studentFields = document.getElementById("studentFields");
     const guestFields   = document.getElementById("guestFields");
-    const studentInputs = studentFields.querySelectorAll("input");
-    const guestInputs   = guestFields.querySelectorAll("input");
+    const studentInputs = studentFields ? studentFields.querySelectorAll("input") : [];
+    const guestInputs   = guestFields ? guestFields.querySelectorAll("input") : [];
 
     function setMode(mode) {
       if (mode === "student") {
@@ -407,6 +434,7 @@
     const docRadio   = document.querySelector('input[value="Documents"]');
     const docChoices = document.getElementById('docChoices');
 
+        if (docRadio) {
     docRadio.addEventListener('click', function () {
       if (this.dataset.checked === "true") {
         this.checked = false;
@@ -417,10 +445,12 @@
         this.dataset.checked = "true";
         docChoices.style.display = 'flex';
       }
+      
     });
     docRadio.addEventListener('change', function () {
       if (!this.checked) this.dataset.checked = "false";
     });
+  }
 
     /* ---------- generic Other ---------- */
     const reasonRadios = document.querySelectorAll("input[name='reason']");
@@ -452,6 +482,40 @@
         document.getElementById('contactModal').style.display = 'none';
       }
     }
+
+    document.getElementById('editPenBtn')?.addEventListener('click', function(e){
+    e.preventDefault();
+    document.getElementById('nameDisplay').style.display = 'none';
+    document.getElementById('nameEditRow').style.display = 'block';
+});
+document.getElementById('cancelNameBtn')?.addEventListener('click', function(e){
+    e.preventDefault();
+    document.getElementById('nameEditRow').style.display = 'none';
+    document.getElementById('nameDisplay').style.display = 'block';
+});
+document.getElementById('saveNameBtn')?.addEventListener('click', function(e){
+    e.preventDefault();
+    const first = document.getElementById('editFirstName').value.trim();
+    const last = document.getElementById('editLastName').value.trim();
+    fetch("{{ url_for('edit_name') }}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-Requested-With": "XMLHttpRequest"
+        },
+        body: `first_name=${encodeURIComponent(first)}&last_name=${encodeURIComponent(last)}`
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('nameText').textContent = data.full_name;
+            document.getElementById('nameEditRow').style.display = 'none';
+            document.getElementById('nameDisplay').style.display = 'block';
+        } else {
+            alert(data.message || "Error updating name.");
+        }
+    });
+});
   </script>
 <div id="contactModal" class="guide-overlay" style="z-index: 12000;" onclick="closeContact(event)">
   <div class="guide-card" style="max-width: 360px; text-align: center;">
