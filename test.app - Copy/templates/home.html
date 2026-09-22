@@ -150,8 +150,16 @@
         </label>
       </div>
 
-      <button type="submit">Get My Ticket</button>
+      <button type="submit" id="ticketBtn">Get My Ticket</button>
     </form>
+      <script>
+      document.querySelector('form[method="POST"]').addEventListener('submit', () => {
+          const online = document.querySelector("input[name='payment_method']:checked")?.value === 'online';
+          const btn = document.getElementById('ticketBtn');
+          btn.disabled = true;
+          btn.textContent = online ? 'Redirecting to secure payment…' : 'Issuing ticket…';
+      });
+      </script>
 
     <p style="text-align:center;margin-top:20px;font-size:14px;">
       Already have a ticket? <a href="{{ url_for('recover_ticket') }}">Recover your ticket</a>
