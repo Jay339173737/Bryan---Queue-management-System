@@ -883,14 +883,11 @@ def pay_advance():
 
     if request.method == "POST":
         selected_documents = request.form.getlist("document_names")
-
         if not selected_documents:
             flash("Please select at least one service.", "warning")
             return redirect(url_for("pay_advance"))
 
-        # Never trust a price submitted by the client (it was a hidden
-        # form field - trivially edited). Look up every document in the
-        # server-side catalog instead, and reject anything not in it.
+        # Server-side price lookup — client totals are never trusted
         priced_documents = []
         for doc_name in selected_documents:
             price = price_for_document(doc_name)
@@ -900,25 +897,44 @@ def pay_advance():
             priced_documents.append((doc_name, price))
 
         batch_id = str(uuid.uuid4())
+        line_items = [{"name": DOCUMENT_LABELS.get(n, n),
+                       "amount": p * 100 + SERVICE_FEE_CENTAVOS,   # pesos → centavos
+                       "quantity": 1} for n, p in priced_documents]
 
+        checkout = None
+        if PAYMONGO_ENABLED:
+            try:
+                checkout = create_checkout_session(
+                    line_items=line_items,
+                    batch_id=batch_id,
+                    description="QFlow advance payment",
+                    success_url=url_for("payment_return", batch_id=batch_id,
+                                        _external=True, kind="advance"),
+                    cancel_url=url_for("pay_advance", _external=True),
+                )
+            except RuntimeError as e:
+                print(f"❌ PayMongo checkout failed: {e}")
+                flash("Payment gateway is unavailable. Please try again.", "danger")
+                return redirect(url_for("pay_advance"))
+
+        # Create records as PENDING — flipped to "paid" only by the webhook
         for doc_name, price in priced_documents:
-            # NOTE for Phase 4: create this as payment_status="pending"
-            # and flip it to "paid" only inside the PayMongo webhook
-            # handler once checkout_session.payment.paid is verified.
-            # It's created "paid" here as a placeholder until that
-            # gateway is wired in - the fix in this pass is that the
-            # amount/document can no longer be tampered with by the client.
-            record = AdvancePayment(
+            db.session.add(AdvancePayment(
                 customer_id=session["user_id"],
                 document_name=doc_name,
                 price=price,
-                payment_status="paid",
+                payment_status="pending" if PAYMONGO_ENABLED else "paid",
                 payment_batch_id=batch_id,
-            )
-            db.session.add(record)
-
+                paymongo_checkout_id=checkout["checkout_id"] if checkout else None,
+                paymongo_payment_intent=checkout["payment_intent_id"] if checkout else None,
+                flow_kind="advance",
+            ))
         db.session.commit()
-        flash(f"Payment recorded for {len(selected_documents)} service(s).", "success")
+
+        if checkout:
+            return redirect(checkout["checkout_url"])   # → PayMongo hosted page
+
+        flash("Payment recorded (gateway not configured).", "success")
         return redirect(url_for("account_dashboard"))
 
     return render_template("pay_advance.html", prices=DOCUMENT_PRICES, labels=DOCUMENT_LABELS)
