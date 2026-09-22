@@ -14,11 +14,13 @@ from itsdangerous import URLSafeSerializer, BadSignature
 import getpass
 import hashlib
 import uuid
+from payments import create_checkout_session, verify_webhook, PAYMONGO_ENABLED, SERVICE_FEE_CENTAVOS
 from services import (fetch_waiting_queue, fetch_active_service, count_todays_tickets,
                       check_ticket_limit, verify_duplicate_ticket, retrieve_or_create_customer,
                       push_queue_update, retrieve_config_value, update_config_value,
                       require_admin_access, price_for_document, DOCUMENT_PRICES, DOCUMENT_LABELS,
                       is_login_locked, record_failed_login, clear_failed_logins,)
+
 
 # ---------- config ----------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -262,11 +264,10 @@ def process_ticket_request():
             # 1. Build the recovery URL
             recover_url = url_for('recover_ticket')
             
-            # 2. Create the HTML message with the link
+      
             msg = Markup(f"❌ You already have an active ticket (#{existing_ticket.id}). "
                          f"<a href='{recover_url}' style='color: inherit; text-decoration: underline; font-weight: bold;'>Click here to recover it.</a>")
             
-            # 3. Flash the message and Redirect to Landing Page (User stays logged out)
             flash(msg, "warning")
             return redirect(url_for("landing_page"))
             
@@ -898,7 +899,7 @@ def pay_advance():
 
         batch_id = str(uuid.uuid4())
         line_items = [{"name": DOCUMENT_LABELS.get(n, n),
-                       "amount": p * 100 + SERVICE_FEE_CENTAVOS,   # pesos → centavos
+                       "amount": p * 100 + SERVICE_FEE_CENTAVOS, 
                        "quantity": 1} for n, p in priced_documents]
 
         checkout = None

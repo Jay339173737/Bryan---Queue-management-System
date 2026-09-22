@@ -141,5 +141,9 @@ class AdvancePayment(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     used_at = db.Column(db.DateTime, nullable=True)
     price = db.Column(db.Integer, default=0)
+    paymongo_checkout_id    = db.Column(db.String(80), nullable=True, index=True)
+    paymongo_payment_intent = db.Column(db.String(80), nullable=True, index=True)
+    flow_kind = db.Column(db.String(20), default="advance")
 
     customer = db.relationship('QueueCustomer', backref='advance_payments')
+    
