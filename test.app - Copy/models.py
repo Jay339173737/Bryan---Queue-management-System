@@ -4,7 +4,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 
 db = SQLAlchemy()
-password_hash = db.Column(db.String(255), nullable=True)
 
 class AdminUser(db.Model):
     """Represents administrative users in the system"""
@@ -12,16 +11,27 @@ class AdminUser(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False, index=True)
-    password = db.Column(db.String(100), nullable=False)
+    password = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), default='admin')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def __repr__(self):
         return f'<AdminUser {self.username}>'
-    
+
+    def set_password(self, raw_password):
+        self.password = generate_password_hash(raw_password)
+
     def verify_password(self, pwd):
-        """Check if provided password matches"""
-        return self.password == pwd
+        """Check if provided password matches. Transparently upgrades any
+        legacy plaintext password to a hash the first time it verifies
+        correctly, so existing databases don't need to be wiped."""
+        if self.password.startswith(("pbkdf2:", "scrypt:")):
+            return check_password_hash(self.password, pwd)
+        if self.password == pwd:
+            self.password = generate_password_hash(pwd)
+            db.session.commit()
+            return True
+        return False
 
 
 class QueueCustomer(db.Model):
@@ -72,6 +82,7 @@ class QueueTicket(db.Model):
     recall_count = db.Column(db.Integer, default=0)
     payment_method = db.Column(db.String(20), default='cash')
     payment_status = db.Column(db.String(20), default='unpaid')
+    amount_due = db.Column(db.Integer, default=0)
     
     def __repr__(self):
         return f'<QueueTicket #{self.id} [{self.ticket_status}]>'
@@ -88,7 +99,9 @@ class QueueTicket(db.Model):
             'role': self.customer_ref.customer_type,
             'student_id': self.customer_ref.student_number,
             'customer_id': self.customer_ref.id,
-            'recall_count': self.recall_count
+            'recall_count': self.recall_count,
+            'payment_method': self.payment_method,
+            'amount_due': self.amount_due
         }
 class SystemConfig(db.Model):
     """Stores system-wide configuration settings"""

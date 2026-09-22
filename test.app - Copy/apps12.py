@@ -17,12 +17,20 @@ import uuid
 from services import (fetch_waiting_queue, fetch_active_service, count_todays_tickets,
                       check_ticket_limit, verify_duplicate_ticket, retrieve_or_create_customer,
                       push_queue_update, retrieve_config_value, update_config_value,
-                      require_admin_access,)
+                      require_admin_access, price_for_document, DOCUMENT_PRICES, DOCUMENT_LABELS,
+                      is_login_locked, record_failed_login, clear_failed_logins,)
 
 # ---------- config ----------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "48f48f54e4f5a3e3870b3c1fc0abb86c")
+
+_env_secret = os.environ.get("SECRET_KEY")
+if not _env_secret:
+    _env_secret = secrets.token_hex(32)
+    print("⚠️  SECRET_KEY not set in environment - using a random one for "
+          "this process only. Set SECRET_KEY before deploying, or every "
+          "restart will log everyone out.")
+app.config['SECRET_KEY'] = _env_secret
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.join(BASE_DIR, "queue.db")}'
 
 # --- ADD THIS BLOCK TO FIX THE CRASH ---
@@ -43,9 +51,13 @@ with app.app_context():
     db.create_all()
     # Check if admin exists, if not create default
     if not AdminUser.query.filter_by(username="admin").first():
-        db.session.add(AdminUser(username="admin", password="admin123", role="admin"))
+        _default_admin = AdminUser(username="admin", role="admin")
+        _default_admin.set_password(os.environ.get("ADMIN_DEFAULT_PASSWORD", "admin123"))
+        db.session.add(_default_admin)
         db.session.commit()
-        print("✅ Default admin created on startup")
+        print("✅ Default admin created on startup - CHANGE THIS PASSWORD "
+              "before deploying (set ADMIN_DEFAULT_PASSWORD or create a "
+              "new admin with 'flask create_admin').")
     # Check if config exists
     if not SystemConfig.query.filter_by(config_key="daily_ticket_limit").first():
         db.session.add(SystemConfig(config_key="daily_ticket_limit", config_value="300"))
@@ -87,8 +99,13 @@ def _get_lock():
 
 @socketio.on("join")
 def handle_customer_join(data):
-    """Process customer joining their notification room"""
-    customer_id = data.get("user_id")
+    """Process customer joining their notification room.
+
+    The room id MUST come from the server-side session, never from the
+    client payload - otherwise anyone can pass another customer's id and
+    silently receive their "your turn" / recall notifications.
+    """
+    customer_id = session.get("user_id")
     if customer_id is not None:
         notification_room = str(customer_id)
         join_room(notification_room)
@@ -129,7 +146,8 @@ def landing_page():
                             session_customer_name=session_customer_name,
                             session_customer_id=session_customer_id,
                             session_customer_firstname=session_customer_firstname,
-                            session_customer_lastname=session_customer_lastname)
+                            session_customer_lastname=session_customer_lastname,
+                            prices=DOCUMENT_PRICES, labels=DOCUMENT_LABELS)
 
 @app.route("/get_ticket", methods=["POST"])
 def process_ticket_request():
@@ -167,15 +185,22 @@ def process_ticket_request():
             return redirect(url_for("landing_page"))
 
         # ---------- build final purpose ----------
+        amount_due = 0
         if visit_purpose == "Document Request":
             docs = request.form.getlist("doc_list")          # list of check-boxes
-            if "Other doc" in docs:
-                other = request.form.get("doc_other", "").strip()
-                if other:
-                    docs[docs.index("Other doc")] = f"Other doc ({other})"
             if not docs:
                 flash("Please select at least one document.", "warning")
                 return redirect(url_for("landing_page"))
+
+            # Never trust a price submitted by the client - look each
+            # document up in the server-side catalog, same as pay_advance.
+            for doc_name in docs:
+                price = price_for_document(doc_name)
+                if price is None:
+                    flash(f"'{doc_name}' is not a recognized document.", "danger")
+                    return redirect(url_for("landing_page"))
+                amount_due += price
+
             visit_purpose = "Documents - " + ", ".join(docs)
 
         elif visit_purpose in ("Other", "Other documents"):
@@ -251,7 +276,8 @@ def process_ticket_request():
                 visit_reason=visit_purpose,
                 customer_ref_id=customer_record.id,
                 payment_method=payment_method,
-                payment_status=payment_status
+                payment_status=payment_status,
+                amount_due=amount_due
             )
             db.session.add(new_ticket)
             
@@ -420,13 +446,22 @@ def admin_login():
             flash("Please enter username and password.", "warning")
             return redirect(url_for("admin_login"))
 
+        # Throttle by IP + username so a script can't brute-force the
+        # password with unlimited attempts.
+        lock_key = f"{request.remote_addr}:{entered_username.lower()}"
+        if is_login_locked(lock_key):
+            flash(f"Too many failed attempts. Please wait a few minutes and try again.", "danger")
+            return redirect(url_for("admin_login"))
+
         admin_account = AdminUser.query.filter_by(username=entered_username, role='admin').first()
         if admin_account and admin_account.verify_password(entered_password):
+            clear_failed_logins(lock_key)
             session["username"] = admin_account.username
             session["role"] = admin_account.role
             flash("Authentication successful. Welcome to admin panel.", "success")
             return redirect(url_for("admin_control_panel"))
 
+        record_failed_login(lock_key)
         flash("Authentication failed. Please verify your credentials.", "danger")
         return redirect(url_for("admin_login"))
 
@@ -775,6 +810,19 @@ def account_signup():
             flash("An account already exists for that student number. Please log in.", "warning")
             return redirect(url_for("account_login"))
 
+        # A record can already exist with no password (e.g. front-desk
+        # created it when this student took a ticket). Anyone who knows
+        # the student number could otherwise attach any name/password to
+        # it and take over that identity. Require the name to match what
+        # is already on file before letting a signup claim it.
+        if existing and (existing.firstname or existing.lastname):
+            on_file_first = (existing.firstname or "").strip().lower()
+            on_file_last = (existing.lastname or "").strip().lower()
+            if on_file_first != given_name.strip().lower() or on_file_last != family_name.strip().lower():
+                flash("That student number already has records under a different name. "
+                      "Please visit the office to verify your identity.", "danger")
+                return redirect(url_for("account_signup"))
+
         customer = existing or QueueCustomer(
             customer_type="student",
             student_number=student_number,
@@ -794,10 +842,6 @@ def account_signup():
         return redirect(url_for("landing_page"))
 
     return render_template("account_signup.html")
-
-@app.route("/test_ticket")
-def test_ticket_page():
-    return render_template("test_ticket.html")
 
 @app.route("/account/logout")
 def account_logout():
@@ -839,19 +883,35 @@ def pay_advance():
 
     if request.method == "POST":
         selected_documents = request.form.getlist("document_names")
-        selected_prices = request.form.getlist("document_prices")
 
         if not selected_documents:
             flash("Please select at least one service.", "warning")
             return redirect(url_for("pay_advance"))
 
+        # Never trust a price submitted by the client (it was a hidden
+        # form field - trivially edited). Look up every document in the
+        # server-side catalog instead, and reject anything not in it.
+        priced_documents = []
+        for doc_name in selected_documents:
+            price = price_for_document(doc_name)
+            if price is None:
+                flash(f"'{doc_name}' is not a recognized document.", "danger")
+                return redirect(url_for("pay_advance"))
+            priced_documents.append((doc_name, price))
+
         batch_id = str(uuid.uuid4())
 
-        for doc_name, doc_price in zip(selected_documents, selected_prices):
+        for doc_name, price in priced_documents:
+            # NOTE for Phase 4: create this as payment_status="pending"
+            # and flip it to "paid" only inside the PayMongo webhook
+            # handler once checkout_session.payment.paid is verified.
+            # It's created "paid" here as a placeholder until that
+            # gateway is wired in - the fix in this pass is that the
+            # amount/document can no longer be tampered with by the client.
             record = AdvancePayment(
                 customer_id=session["user_id"],
                 document_name=doc_name,
-                price=int(doc_price),
+                price=price,
                 payment_status="paid",
                 payment_batch_id=batch_id,
             )
@@ -861,7 +921,7 @@ def pay_advance():
         flash(f"Payment recorded for {len(selected_documents)} service(s).", "success")
         return redirect(url_for("account_dashboard"))
 
-    return render_template("pay_advance.html")
+    return render_template("pay_advance.html", prices=DOCUMENT_PRICES, labels=DOCUMENT_LABELS)
 
 
 @app.route("/account/activate-batch/<batch_id>", methods=["POST"])
@@ -945,7 +1005,10 @@ def edit_name():
         flash("Name updated successfully.", "success")
         return redirect(url_for("landing_page"))
 
-    return render_template("edit_name.html", customer=customer)
+    # There is no standalone "edit name" page - editing happens inline
+    # on the landing page via the AJAX call above. A bare GET here (or a
+    # non-AJAX request) just sends the user back there.
+    return redirect(url_for("landing_page"))
 
 # ========================================
 # Application Entry Point

@@ -14,8 +14,10 @@ def register_cli_commands(app):
         db.create_all()
 
         if not AdminUser.query.filter_by(username="admin").first():
-            db.session.add(AdminUser(username="admin", password="admin123", role="admin"))
-            print("✅ Default administrator created (username: admin, password: admin123)")
+            default_admin = AdminUser(username="admin", role="admin")
+            default_admin.set_password("admin123")
+            db.session.add(default_admin)
+            print("✅ Default administrator created (username: admin, password: admin123) - change this password before deploying")
 
         if not SystemConfig.query.filter_by(config_key="daily_ticket_limit").first():
             db.session.add(SystemConfig(config_key="daily_ticket_limit", config_value="300"))
@@ -31,7 +33,9 @@ def register_cli_commands(app):
         if AdminUser.query.filter_by(username=username).first():
             print("❌ Username already exists."); return
         try:
-            db.session.add(AdminUser(username=username, password=password, role="admin"))
+            new_admin = AdminUser(username=username, role="admin")
+            new_admin.set_password(password)
+            db.session.add(new_admin)
             db.session.commit()
             print(f"✅ Administrator '{username}' created.")
         except IntegrityError:

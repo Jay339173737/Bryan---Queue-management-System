@@ -294,6 +294,18 @@
  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
 <script>
+// Ticket names/reasons come from public form fields anyone can type
+// into - always escape before dropping them into innerHTML.
+function escapeHtml(value) {
+  if (value === null || value === undefined) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 /* ---------- Guide Modal Logic ---------- */
 let hasUserInteracted = false;
 
@@ -566,14 +578,14 @@ socket.on("queue_update", (payload) => {
     }
 
     tbody.innerHTML = queue.map(item => `
-        <tr data-ticket-id="${item.ticket}" ${item.status === 'serving' ? "class='serving-row'" : ""}>
-            <td>#${item.ticket}</td>
-            <td>${item.reason || '-'}</td>
-            <td><span class="status-${item.status || 'waiting'}">${item.status || '-'}</span></td>
-            <td style="font-size: 11px;">${item.created_at || '-'}</td>
-            <td>${item.name || '-'}</td>
-            <td>${item.role || '-'}</td>
-            <td>${item.student_id || '-'}</td>
+        <tr data-ticket-id="${escapeHtml(item.ticket)}" ${item.status === 'serving' ? "class='serving-row'" : ""}>
+            <td>#${escapeHtml(item.ticket)}</td>
+            <td>${escapeHtml(item.reason) || '-'}</td>
+            <td><span class="status-${escapeHtml(item.status || 'waiting')}">${escapeHtml(item.status) || '-'}</span></td>
+            <td style="font-size: 11px;">${escapeHtml(item.created_at) || '-'}</td>
+            <td>${escapeHtml(item.name) || '-'}</td>
+            <td>${escapeHtml(item.role) || '-'}</td>
+            <td>${escapeHtml(item.student_id) || '-'}</td>
         </tr>`).join("");
 
     updatePositionFromDOM();

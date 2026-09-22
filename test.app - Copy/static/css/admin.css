@@ -152,3 +152,10 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--i
   .sidebar__link{padding:12px;text-align:center}
   .main{padding:20px 16px}
 }
+/* ---------- Payment method indicator ---------- */
+.pay-dot{
+  display:inline-block;width:12px;height:12px;border-radius:50%;
+  box-shadow:0 0 0 2px rgba(0,0,0,.04);
+}
+.pay-dot.cash{background:#dc2626;}
+.pay-dot.online,.pay-dot.advance{background:#16a34a;}

@@ -203,3 +203,10 @@ h2{font-size:18px;font-weight:700;margin:26px 0 12px}
 }
 .doc-checklist input[type="checkbox"]{width:18px;height:18px;accent-color:var(--blue-600)}
 .doc-checklist .doc-price{font-weight:700;color:var(--ink);font-size:13.5px}
+/* ---------- Document price summary ---------- */
+.price-card{
+  background:var(--blue-50,#eff6ff);border:1px solid var(--blue-100,#dbeafe);border-radius:14px;
+  padding:16px;margin:10px 0 18px;
+}
+.price-row{display:flex;justify-content:space-between;font-size:14px;color:var(--slate,#475569);padding:4px 0}
+.price-row.total{border-top:1px dashed var(--blue-100,#dbeafe);margin-top:8px;padding-top:10px;font-weight:800;color:var(--ink,#0f172a);font-size:16px}

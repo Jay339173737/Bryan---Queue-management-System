@@ -192,6 +192,7 @@
                 <th>Student ID</th>
                 <th>Role</th>
                 <th>Reason</th>
+                <th>Payment</th>
                 <th>Created At</th>
               </tr>
             </thead>
@@ -219,6 +220,18 @@
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script>
     const socket = io(window.location.origin, { transports: ["websocket"], cors: { origin: "*" } });
+
+    // Ticket names/reasons come from public form fields anyone can type
+    // into - always escape before dropping them into innerHTML.
+    function escapeHtml(value) {
+      if (value === null || value === undefined) return "";
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
 
     // --- Element References ---
     const queueTable = document.querySelector("#queue-table tbody");
@@ -378,16 +391,22 @@
       const next = payload.next_ticket;
 
       // Update Table
-      queueTable.innerHTML = queue.map(item => `
+      queueTable.innerHTML = queue.map(item => {
+        const isCash = item.payment_method === 'cash';
+        const payClass = isCash ? 'cash' : (item.payment_method || 'cash');
+        const payTitle = isCash ? 'Pay at Window' : (item.payment_method === 'advance' ? 'Paid in Advance' : 'Paid Online');
+        return `
         <tr>
-          <td>${item.ticket}</td>
-          <td>${item.name || "-"}</td>
-          <td>${item.student_id || "-"}</td>
-          <td>${item.role || "-"}</td>
-          <td>${item.reason || "-"}</td>
-          <td>${item.created_at || "-"}</td>
+          <td>${escapeHtml(item.ticket)}</td>
+          <td>${escapeHtml(item.name) || "-"}</td>
+          <td>${escapeHtml(item.student_id) || "-"}</td>
+          <td>${escapeHtml(item.role) || "-"}</td>
+          <td>${escapeHtml(item.reason) || "-"}</td>
+          <td><span class="pay-dot ${payClass}" title="${payTitle}"></span></td>
+          <td>${escapeHtml(item.created_at) || "-"}</td>
         </tr>
-      `).join("");
+      `;
+      }).join("");
 
       if (queueCount) queueCount.textContent = queue.length;
       if (currentNumberContainer) currentNumberContainer.textContent = current?.ticket || "--";

@@ -13,6 +13,61 @@ from models import db, QueueTicket, QueueCustomer, SystemConfig, AdminUser
 
 
 # --------------------------------------------------
+# Document prices (server-side source of truth)
+# --------------------------------------------------
+# Prices in whole pesos. NEVER trust a price submitted by the client -
+# always look it up here. Keeping this in one place also means the
+# PayMongo line-item amount (in centavos) comes from the same catalog.
+DOCUMENT_PRICES: Dict[str, int] = {
+    "COR": 50,
+    "Diploma": 150,
+    "Transcript of Records": 100,
+    "Honorable Dismissal": 100,
+    "CAV": 80,
+    "Form 137": 50,
+}
+
+# Friendlier labels for the pay-advance page. Falls back to the raw key
+# for anything not listed here.
+DOCUMENT_LABELS: Dict[str, str] = {
+    "COR": "Certificate of Registration (COR)",
+    "CAV": "CAV (Authentication)",
+}
+
+
+def price_for_document(name: str) -> Optional[int]:
+    """Return the trusted peso price for a known document, or None."""
+    return DOCUMENT_PRICES.get(name)
+
+
+# --------------------------------------------------
+# Simple in-memory admin login throttle
+# --------------------------------------------------
+# Not distributed / not persistent across restarts - fine for a single
+# small Flask process, but swap for a real store (e.g. Redis) if this
+# ever runs behind multiple workers.
+_failed_logins: Dict[str, List[datetime]] = {}
+LOGIN_MAX_ATTEMPTS = 5
+LOGIN_WINDOW_MINUTES = 10
+
+
+def is_login_locked(key: str) -> bool:
+    from datetime import timedelta
+    cutoff = datetime.utcnow() - timedelta(minutes=LOGIN_WINDOW_MINUTES)
+    attempts = [t for t in _failed_logins.get(key, []) if t > cutoff]
+    _failed_logins[key] = attempts
+    return len(attempts) >= LOGIN_MAX_ATTEMPTS
+
+
+def record_failed_login(key: str) -> None:
+    _failed_logins.setdefault(key, []).append(datetime.utcnow())
+
+
+def clear_failed_logins(key: str) -> None:
+    _failed_logins.pop(key, None)
+
+
+# --------------------------------------------------
 # Queue helpers
 # --------------------------------------------------
 # In services.py
