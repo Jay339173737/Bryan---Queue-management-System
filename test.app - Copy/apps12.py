@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-load_dotenv()   # must run before payments.py (or anything else) reads os.environ
+load_dotenv()
 
 import sys, io
 from datetime import datetime, timedelta,date

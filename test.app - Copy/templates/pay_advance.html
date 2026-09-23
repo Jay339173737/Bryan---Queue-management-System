@@ -92,7 +92,7 @@
         fetch(this.action, {
             method: 'POST',
             body: new FormData(this),
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'ngrok-skip-browser-warning': 'true' }
         })
         .then(async r => {
             const ct = r.headers.get('content-type') || '';
