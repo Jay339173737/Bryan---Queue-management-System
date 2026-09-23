@@ -1,4 +1,7 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()   # must run before payments.py (or anything else) reads os.environ
+
 import sys, io
 from datetime import datetime, timedelta,date
 from flask import Flask, render_template, request, redirect, url_for, flash, session, make_response, jsonify

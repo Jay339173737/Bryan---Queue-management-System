@@ -105,8 +105,9 @@
                     payError(data.message || 'Could not start checkout. Please try again.');
                 }
             } else {
-                const html = await r.text();
-                document.open(); document.write(html); document.close();
+                // PayMongo not configured yet, or a flash/error page -
+                // navigate there for real instead of injecting raw HTML.
+                window.location.href = r.url;
             }
         })
         .catch(() => payError('Network error. Please try again.'));

@@ -363,10 +363,11 @@
                   payError(data.message || 'Could not start checkout. Please try again.');
               }
           } else {
-              // Server responded with a page (duplicate-name warning, flash error, etc.)
-              // → just show that page instead of the popup
-              const html = await r.text();
-              document.open(); document.write(html); document.close();
+              // Server responded with a real page (duplicate-name warning,
+              // flash error, or - when PayMongo isn't configured yet - the
+              // normal ticket-created redirect). Navigate there for real
+              // instead of injecting raw HTML, so scripts/CSS/sockets load correctly.
+              window.location.href = r.url;
           }
       })
       .catch(() => payError('Network error. Please check your connection and try again.'));
