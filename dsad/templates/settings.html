@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Settings - NWSSU Tap-in Queue</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+</head>
+<body>
+  <div class="dashboard">
+    <!-- Sidebar - IDENTICAL to other pages -->
+    <aside class="sidebar">
+      <h2>Admin Panel</h2>
+      <a href="{{ url_for('admin_control_panel') }}" class="sidebar__link">Overview</a>
+      <a href="{{ url_for('view_ticket_history') }}" class="sidebar__link">History</a>
+      <a href="{{ url_for('admin_settings') }}" class="sidebar__link active">Settings</a>
+      <a href="{{ url_for('admin_logout') }}" class="sidebar__link logout">Logout</a>
+    </aside>
+
+    <main class="main">
+      <div class="header">
+        <h2>System Settings</h2>
+      </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, msg in messages %}
+            <div class="flash {{ category }}">{{ msg }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <!-- Ticket Limit Settings -->
+      <section class="card">
+        <h3>Daily Ticket Limit</h3>
+        <p class="settings-description">Control the maximum number of tickets that can be issued per day.</p>
+        <form method="POST" action="{{ url_for('admin_settings') }}" class="settings-form">
+          <div class="form-group">
+            <label for="daily_limit">Maximum tickets per day:</label>
+            <input type="number" id="daily_limit" name="daily_limit" value="{{ daily_limit }}" min="1" max="999">
+          </div>
+          <button type="submit" class="btn btn--primary">Update Limit</button>
+        </form>
+        <div class="settings-stats">
+          <strong>Current usage:</strong> {{ today_count }} of {{ daily_limit }} tickets issued today
+        </div>
+      </section>
+
+      <!-- System Info -->
+      <section class="card">
+        <h3>System Information</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">Queue Status</span>
+            <span class="info-value">{{ 'Active' if has_queue else 'Empty' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Today Count</span>
+            <span class="info-value">{{ today_count }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Daily Limit</span>
+            <span class="info-value">{{ daily_limit }}</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

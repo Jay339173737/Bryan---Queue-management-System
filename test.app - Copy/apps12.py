@@ -18,6 +18,8 @@ import getpass
 import hashlib
 import uuid
 from payments import create_checkout_session, verify_webhook, PAYMONGO_ENABLED, SERVICE_FEE_CENTAVOS
+
+print(f"💳 PAYMONGO_ENABLED = {PAYMONGO_ENABLED}")
 from services import (fetch_waiting_queue, fetch_active_service, count_todays_tickets,
                       check_ticket_limit, verify_duplicate_ticket, retrieve_or_create_customer,
                       push_queue_update, retrieve_config_value, update_config_value,
@@ -227,7 +229,18 @@ def process_ticket_request():
                 msg = Markup(f'Online payment needs a free account. <a href="{signup_url}" style="color: inherit; text-decoration: underline; font-weight: bold;">Sign up here</a> — it only takes a minute!')
                 flash(msg, "warning")
                 return redirect(url_for("landing_page"))
-            payment_status = "paid"
+            if amount_due <= 0:
+                # Nothing to actually charge (Consultation / Other / etc. have
+                # no price attached) — "online payment" doesn't apply here, so
+                # treat it the same as a free walk-in ticket instead of
+                # silently marking it "paid" for a payment that never happened.
+                payment_method = "cash"
+                payment_status = "paid"
+            else:
+                # Do NOT mark this "paid" yet. It only becomes "paid" once
+                # PayMongo's webhook confirms the charge — see the checkout
+                # branch below and /paymongo/webhook.
+                payment_status = "pending"
         else:
             payment_status = "unpaid"
 

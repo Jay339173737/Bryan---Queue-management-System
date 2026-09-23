@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NWSSU TapIn Queue System - History</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="dashboard">
+    <!-- Sidebar - IDENTICAL to admin.html -->
+    <aside class="sidebar">
+      <h2>Admin Panel</h2>
+      <a href="{{ url_for('admin_control_panel') }}" class="sidebar__link">Overview</a>
+      <a href="{{ url_for('view_ticket_history') }}" class="sidebar__link active">History</a>
+      <a href="{{ url_for('admin_logout') }}" class="sidebar__link logout">Logout</a>
+    </aside>
+
+    <main class="main">
+      <!-- Header - IDENTICAL to admin.html -->
+      <div class="header">
+        <h2>Ticket History</h2>
+      </div>
+
+      <!-- Served Tickets -->
+      <section class="card">
+        <h3>Served Tickets ({{ served|length }})</h3>
+        {% if served %}
+        <div class="table-container">
+          <table id="queue-table">
+            <thead>
+              <tr>
+                <th>Ticket #</th>
+                <th>Reason</th>
+                <th>Created At</th>
+                <th>Served At</th>
+                <th>Name</th>
+                <th>Role</th>
+                <th>Student ID</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for ticket in served %}
+              <tr>
+                <td>{{ ticket.ticket }}</td>
+                <td>{{ ticket.reason }}</td>
+                <td>{{ ticket.created_at }}</td>
+                <td>{{ ticket.served_at or '-' }}</td>
+                <td>{{ ticket.name }}</td>
+                <td>{{ ticket.role|capitalize }}</td>
+                <td>{{ ticket.student_id or '-' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="empty-state">No served tickets yet today</p>
+        {% endif %}
+      </section>
+
+      <!-- No-show Tickets -->
+      <section class="card">
+        <h3>No-show Tickets ({{ no_show|length }})</h3>
+        {% if no_show %}
+        <div class="table-container">
+          <table id="queue-table">
+            <thead>
+              <tr>
+                <th>Ticket #</th>
+                <th>Reason</th>
+                <th>Created At</th>
+                <th>Marked At</th>
+                <th>Name</th>
+                <th>Role</th>
+                <th>Student ID</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for ticket in no_show %}
+              <tr>
+                <td>{{ ticket.ticket }}</td>
+                <td>{{ ticket.reason }}</td>
+                <td>{{ ticket.created_at }}</td>
+                <td>{{ ticket.served_at or '-' }}</td>
+                <td>{{ ticket.name }}</td>
+                <td>{{ ticket.role|capitalize }}</td>
+                <td>{{ ticket.student_id or '-' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="empty-state">No no-shows recorded</p>
+        {% endif %}
+      </section>
+
+      <!-- Settings Card (Minimal version) -->
+      <section class="card">
+        <h3>Settings</h3>
+        <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1rem;">
+          Configure ticket limits in the Dashboard
+        </p>
+        <a href="{{ url_for('admin_control_panel') }}" class="sidebar__link" style="margin: 0; padding: 0.5rem 1rem;">
+          ← Back to Dashboard
+        </a>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

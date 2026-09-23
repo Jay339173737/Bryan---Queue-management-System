@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QFlow — Pay in Advance</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/account.css') }}">
+</head>
+<body>
+    <div class="account-card">
+        <div class="card-band">
+            <div class="brand-mark">Q</div>
+            <h1>Pay in Advance</h1>
+            <p>Skip the payment line — activate your ticket anytime</p>
+        </div>
+
+        <div class="card-body">
+            <a class="back-link" href="{{ url_for('account_dashboard') }}">← Back to dashboard</a>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, msg in messages %}
+                  <div class="flash {{ category }}">{{ msg }}</div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="{{ url_for('pay_advance') }}">
+    <label style="display:block;font-size:12.5px;font-weight:700;color:var(--slate);margin-bottom:8px;">Select Document(s)</label>
+
+    <div class="doc-checklist">
+    {% for doc_name, doc_price in prices.items() %}
+    <label>
+        <span><input type="checkbox" class="doc-check" name="document_names" value="{{ doc_name }}" data-price="{{ doc_price }}"> {{ labels.get(doc_name, doc_name) }}</span>
+        <span class="doc-price">₱{{ doc_price }}</span>
+    </label>
+    {% endfor %}
+</div>
+    <div class="price-card">
+        <div class="price-row total"><span>Total</span><span id="total">₱0</span></div>
+    </div>
+
+    <button class="btn" type="submit" id="payBtn">Pay Now</button>
+</form>
+
+            <p class="switch-link">Your payment is saved to your account for instant ticket activation.</p>
+        </div>
+    </div>
+
+    <!-- Payment progress popup -->
+    <div id="payPopup" class="pay-overlay" style="display:none;">
+      <div class="pay-popup-card">
+        <div class="pay-popup-spinner" id="paySpinner"><div class="ring"></div><div class="check">✓</div></div>
+        <h3 id="payPopupTitle">Preparing Secure Checkout</h3>
+        <p id="payPopupText">Talking to the payment gateway…</p>
+        <div class="pay-popup-steps">
+          <div class="pstep active" id="ps1"><span class="dot"></span> Preparing checkout</div>
+          <div class="pstep" id="ps2"><span class="dot"></span> Redirecting to PayMongo</div>
+          <div class="pstep" id="ps3"><span class="dot"></span> Confirming payment</div>
+          <div class="pstep" id="ps4"><span class="dot"></span> Activating your service</div>
+        </div>
+        <button class="btn secondary" id="payPopupClose" style="display:none;" onclick="closePayPopup()">Close</button>
+      </div>
+    </div>
+
+    <script>
+    const payPopup = document.getElementById('payPopup');
+
+    function setStep(n, title, text) {
+        for (let i = 1; i <= 4; i++) {
+            const el = document.getElementById('ps' + i);
+            el.classList.remove('active', 'done');
+            if (i < n) el.classList.add('done');
+            else if (i === n) el.classList.add('active');
+        }
+        if (title) document.getElementById('payPopupTitle').textContent = title;
+        if (text)  document.getElementById('payPopupText').textContent = text;
+    }
+    function closePayPopup() { payPopup.style.display = 'none'; }
+    function payError(msg) {
+        setStep(1, 'Something went wrong', msg);
+        document.getElementById('payPopupClose').style.display = 'block';
+    }
+
+    document.querySelector('form[method="POST"]').addEventListener('submit', function (e) {
+        e.preventDefault();
+        document.getElementById('paySpinner').classList.remove('done');
+        document.getElementById('payPopupClose').style.display = 'none';
+        setStep(1, 'Preparing Secure Checkout', 'Talking to the payment gateway…');
+        payPopup.style.display = 'flex';
+
+        fetch(this.action, {
+            method: 'POST',
+            body: new FormData(this),
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'ngrok-skip-browser-warning': 'true' }
+        })
+        .then(async r => {
+            const ct = r.headers.get('content-type') || '';
+            if (ct.includes('application/json')) {
+                const data = await r.json();
+                if (data.checkout_url) {
+                    setStep(2, 'Redirecting to PayMongo', 'Complete your payment in the secure window…');
+                    setTimeout(() => { window.location.href = data.checkout_url; }, 900);
+                } else {
+                    payError(data.message || 'Could not start checkout. Please try again.');
+                }
+            } else if (r.redirected) {
+                // PayMongo not configured yet, or a flash/error page -
+                // navigate there for real.
+                window.location.href = r.url;
+            } else {
+                // Server rendered a page in place of this same POST -
+                // navigating to r.url here would hit a POST-only route.
+                const html = await r.text();
+                document.open(); document.write(html); document.close();
+            }
+        })
+        .catch(() => payError('Network error. Please try again.'));
+    });
+    </script>
+
+    <script>
+    const checkboxes = document.querySelectorAll('.doc-check');
+    const totalEl = document.getElementById('total');
+
+    function updateTotal() {
+        let total = 0;
+        checkboxes.forEach(cb => {
+            if (cb.checked) total += parseInt(cb.dataset.price, 10);
+        });
+        totalEl.textContent = '₱' + total;
+    }
+
+    checkboxes.forEach(cb => cb.addEventListener('change', updateTotal));
+    </script>
+</body>
+</html>

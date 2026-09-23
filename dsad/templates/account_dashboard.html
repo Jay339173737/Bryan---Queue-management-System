@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QFlow — My Account</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/account.css') }}">
+</head>
+<body>
+    <div class="account-card">
+        <div class="card-band">
+            <div class="brand-mark">Q</div>
+            <h1>My Account</h1>
+            <p>Your prepaid services and tickets</p>
+        </div>
+
+        <div class="card-body">
+            <div class="top-bar">
+                <a href="{{ url_for('landing_page') }}">← Back to queue</a>
+                <a href="{{ url_for('account_logout') }}">Log out</a>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, msg in messages %}
+                  <div class="flash {{ category }}">{{ msg }}</div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+
+            <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;">Paid Services (Unused)</h3>
+
+            {% if payment_batches %}
+            <ul class="doc-list">
+              {% for batch in payment_batches %}
+                <li>
+                    <div>
+                        <div class="doc-name">{{ batch.documents | join(', ') }}</div>
+                        <div class="doc-meta">Paid {{ batch.created_at }}</div>
+                    </div>
+                    <form method="POST" action="{{ url_for('activate_payment', batch_id=batch.batch_id) }}">
+                        <button class="btn small" type="submit">Activate →</button>
+                    </form>
+                </li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <div class="empty">No unused paid services yet.<br>Prepay below to skip the payment line.</div>
+            {% endif %}
+
+            <form method="GET" action="{{ url_for('pay_advance') }}">
+                <button class="btn secondary" type="submit">＋ Pay for a Service</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

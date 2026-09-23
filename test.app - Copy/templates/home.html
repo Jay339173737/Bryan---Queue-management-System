@@ -362,12 +362,18 @@
               } else {
                   payError(data.message || 'Could not start checkout. Please try again.');
               }
-          } else {
-              // Server responded with a real page (duplicate-name warning,
-              // flash error, or - when PayMongo isn't configured yet - the
-              // normal ticket-created redirect). Navigate there for real
-              // instead of injecting raw HTML, so scripts/CSS/sockets load correctly.
+          } else if (r.redirected) {
+              // Server actually redirected us elsewhere (flash message,
+              // "needs an account" notice, ticket-quota page, etc.) -
+              // safe to navigate there for real.
               window.location.href = r.url;
+          } else {
+              // Server rendered a page IN PLACE of this same POST request
+              // (e.g. the duplicate-ticket "continue anyway?" warning).
+              // r.url here is still /get_ticket, which only accepts POST -
+              // navigating to it would 405. Show the returned page instead.
+              const html = await r.text();
+              document.open(); document.write(html); document.close();
           }
       })
       .catch(() => payError('Network error. Please check your connection and try again.'));

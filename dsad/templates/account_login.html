@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QFlow — Log In</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/account.css') }}">
+</head>
+<body>
+    <div class="account-card">
+        <div class="card-band">
+            <div class="brand-mark">Q</div>
+            <h1>Welcome Back</h1>
+            <p>Log in to manage your tickets and payments</p>
+        </div>
+
+        <div class="card-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, msg in messages %}
+                  <div class="flash {{ category }}">{{ msg }}</div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="{{ url_for('account_login') }}">
+                <div class="field">
+                    <label for="student_id">Account / Member ID</label>
+                    <input type="text" id="student_id" name="student_id" placeholder="e.g. M-10234" required>
+                </div>
+
+                <div class="field">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="••••••••" required>
+                </div>
+
+                <button class="btn" type="submit">Log In</button>
+            </form>
+
+            <p class="switch-link">Don't have an account? <a href="{{ url_for('account_signup') }}">Sign up free</a></p>
+        </div>
+    </div>
+</body>
+</html>

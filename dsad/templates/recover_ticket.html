@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recover Ticket</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/student.css') }}">
+  <style>
+    /* --- Modal Styles (Same dark theme as other pages) --- */
+    .guide-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.85); /* Dark blur */
+      backdrop-filter: blur(5px);
+      z-index: 9999;
+      display: none; /* Hidden by default */
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    .guide-card {
+      background: #1e293b; /* Dark Slate */
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 20px;
+      padding: 32px 28px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+
+    .guide-title {
+        text-align: center;
+        color: #10b981;
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 24px;
+    }
+
+    .close-guide {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      background: none;
+      border: none;
+      color: #64748b;
+      font-size: 28px;
+      cursor: pointer;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+    .close-guide:hover { color: #ef4444; }
+
+    .guide-step {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+      align-items: flex-start;
+    }
+    
+    .step-number {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 14px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .step-text h4 { color: #f8fafc; margin: 0 0 4px 0; font-size: 15px; font-weight: 700; }
+    .step-text p { color: #94a3b8; margin: 0; font-size: 13px; line-height: 1.5; }
+
+    /* --- "How to recover?" Link Style --- */
+    .help-link-container {
+        text-align: center;
+        margin-top: 20px;
+        margin-bottom: 10px;
+    }
+    
+    .help-trigger {
+        color: #64748b;
+        font-size: 14px;
+        text-decoration: none;
+        cursor: pointer;
+        border-bottom: 1px dashed #64748b;
+        transition: all 0.2s;
+    }
+    .help-trigger:hover {
+        color: #10b981;
+        border-color: #10b981;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  </style>
+</head>
+<body>
+
+  <div id="guideModal" class="guide-overlay" onclick="closeGuide(event)">
+    <div class="guide-card">
+      <button class="close-guide" onclick="closeGuide(event)">&times;</button>
+      
+      <div class="guide-title">Account Recovery Guide</div>
+      
+      <div class="guide-step">
+        <div class="step-number">1</div>
+        <div class="step-text">
+          <h4>For Students</h4>
+          <p>Enter your <strong>Student ID</strong> exactly as you typed it when you registered, along with your First and Last Name.</p>
+        </div>
+      </div>
+      
+      <div class="guide-step">
+        <div class="step-number">2</div>
+        <div class="step-text">
+          <h4>For Guests</h4>
+          <p>In the "Guest ID" box, enter your <strong>Guest Recovery ID</strong> #TicketNo.\lastname (e.g., <em>#8Garcia</em>) combined with your Name.</p>
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #64748b;">
+        This helps retrieve your session if you lost connection.
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="header-container">
+      <div class="logo-wrapper">
+        <img src="{{ url_for('static', filename='images/nwssu1.png') }}" alt="Logo">
+      </div>
+      <h1>Recover Your Ticket</h1>
+      <p class="school-name">Queue System</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('recover_ticket') }}">
+      <h3>Enter your details</h3>
+
+      <input type="text" name="student_id" placeholder="Student ID / Guest ID" required>
+      <input type="text" name="first_name" placeholder="First Name" required>
+      <input type="text" name="last_name" placeholder="Last Name" required>
+
+      <button type="submit" class="btn btn-primary">Find My Ticket</button>
+    </form>
+
+    <div class="help-link-container">
+        <span class="help-trigger" onclick="openGuide()">How to recover?</span>
+    </div>
+
+    <div style="text-align:center; margin-top:16px;">
+      <a href="{{ url_for('landing_page') }}">← Back to home</a>
+    </div>
+  </div>
+
+  <script>
+    function openGuide() {
+      document.getElementById('guideModal').style.display = 'flex';
+    }
+    
+    function closeGuide(e) {
+      if (e.target.id === 'guideModal' || e.target.classList.contains('close-guide')) {
+        document.getElementById('guideModal').style.display = 'none';
+      }
+    }
+  </script>
+</body>
+</html>

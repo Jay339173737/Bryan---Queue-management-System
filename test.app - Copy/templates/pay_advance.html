@@ -104,10 +104,15 @@
                 } else {
                     payError(data.message || 'Could not start checkout. Please try again.');
                 }
-            } else {
+            } else if (r.redirected) {
                 // PayMongo not configured yet, or a flash/error page -
-                // navigate there for real instead of injecting raw HTML.
+                // navigate there for real.
                 window.location.href = r.url;
+            } else {
+                // Server rendered a page in place of this same POST -
+                // navigating to r.url here would hit a POST-only route.
+                const html = await r.text();
+                document.open(); document.write(html); document.close();
             }
         })
         .catch(() => payError('Network error. Please try again.'));

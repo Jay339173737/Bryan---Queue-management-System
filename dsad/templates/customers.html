@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <h1>🎟️ RISE Dashboard</h1>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/student.css') }}">
+  <style>
+      #break-banner {
+          background-color: #f59e0b;
+          color: white;
+          text-align: center;
+          padding: 16px 20px;
+          font-weight: 600;
+          font-size: 1.1rem;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          z-index: 99999;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+          display: none;
+          animation: slideDown 0.3s ease-out;
+      }
+      
+      @keyframes slideDown {
+          from { transform: translateY(-100%); }
+          to { transform: translateY(0); }
+      }
+
+      .break-time {
+          font-weight: 800;
+          background: rgba(255,255,255,0.2);
+          padding: 2px 8px;
+          border-radius: 6px;
+          margin-left: 8px;
+      }
+
+      /* --- Scrollable Queue Container --- */
+      .queue-container {
+          max-height: 50vh; /* Limit height to half screen */
+          overflow-y: auto; /* Enable vertical scroll */
+          overflow-x: hidden;
+          border-radius: 16px;
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          background: rgba(0, 0, 0, 0.2);
+          padding: 0 4px;
+          margin-top: 10px;
+      }
+
+      .queue-container::-webkit-scrollbar { width: 6px; }
+      .queue-container::-webkit-scrollbar-track { background: transparent; }
+      .queue-container::-webkit-scrollbar-thumb { background: rgba(16, 185, 129, 0.3); border-radius: 10px; }
+
+      /* Sticky Header Logic */
+      #queue-table th {
+          position: sticky;
+          top: 0;
+          z-index: 10;
+          background: rgba(16, 185, 129, 0.95);
+          backdrop-filter: blur(10px);
+          box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      }
+
+      /* --- Guide Modal & Button Styles --- */
+      .help-fab {
+          position: fixed;
+          bottom: 24px;
+          right: 24px;
+          width: 56px;
+          height: 56px;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          border-radius: 50%;
+          color: white;
+          font-size: 24px;
+          font-weight: 800;
+          border: none;
+          box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+          cursor: pointer;
+          z-index: 100;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: transform 0.2s, box-shadow 0.2s;
+      }
+      .help-fab:active { transform: scale(0.95); }
+
+      .guide-overlay {
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(15, 23, 42, 0.85);
+          backdrop-filter: blur(8px);
+          z-index: 2000;
+          display: none;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          animation: fadeIn 0.2s ease-out;
+      }
+
+      .guide-card {
+          background: #1e293b;
+          border: 1px solid rgba(16, 185, 129, 0.3);
+          border-radius: 24px;
+          padding: 32px 24px;
+          max-width: 400px;
+          width: 100%;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+          position: relative;
+      }
+
+      .guide-step {
+          display: flex;
+          gap: 16px;
+          margin-bottom: 24px;
+      }
+      .step-number {
+          background: rgba(16, 185, 129, 0.15);
+          color: #10b981;
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 800;
+          font-size: 16px;
+          flex-shrink: 0;
+          border: 1px solid rgba(16, 185, 129, 0.2);
+      }
+      .step-text h4 { color: #f1f5f9; margin: 0 0 6px 0; font-size: 16px; font-weight: 700; }
+      .step-text p { color: #94a3b8; margin: 0; font-size: 14px; line-height: 1.5; }
+
+      .close-guide {
+          position: absolute;
+          top: 16px;
+          right: 16px;
+          background: none;
+          border: none;
+          color: #64748b;
+          font-size: 24px;
+          cursor: pointer;
+      }
+      
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+      /* --- Mobile Compact View --- */
+      @media (max-width: 600px) {
+        #queue-table thead { display: none; }
+        #queue-table tr {
+            display: block;
+            background: rgba(30, 41, 59, 0.4);
+            margin-bottom: 8px;
+            border-radius: 12px;
+            padding: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        #queue-table td {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border: none;
+            background: transparent !important;
+            font-size: 13px;
+        }
+        #queue-table td:nth-of-type(1)::before { content: "Ticket"; font-weight: bold; color: #64748b; }
+        #queue-table td:nth-of-type(2)::before { content: "Reason"; font-weight: bold; color: #64748b; }
+        #queue-table td:nth-of-type(3)::before { content: "Status"; font-weight: bold; color: #64748b; }
+        #queue-table td:nth-of-type(4)::before { content: "Time"; font-weight: bold; color: #64748b; }
+        #queue-table td:nth-of-type(5), #queue-table td:nth-of-type(6), #queue-table td:nth-of-type(7) { display: none; }
+      }
+  </style>
+</head>
+<body data-user-id="{{ session.get('user_id') }}" data-ticket-id="{{ ticket_id or '' }}">
+  <div class="team-watermark">Powered by Lipbyte</div>
+  {% if resume_time %}
+    <div id="break-banner" style="display: block;">
+        ☕ We are on a short break. Resuming at <span id="banner-time" class="break-time">{{ resume_time }}</span>
+    </div>
+  {% else %}
+    <div id="break-banner" style="display: none;">
+        ☕ We are on a short break. Resuming at <span id="banner-time" class="break-time"></span>
+    </div>
+  {% endif %}
+
+  <div id="guideModal" class="guide-overlay" onclick="closeGuide(event)">
+    <div class="guide-card">
+      <button class="close-guide" onclick="closeGuide(event)">×</button>
+      <h3 style="text-align: center; color: #10b981; margin-bottom: 24px; font-size: 20px;">Waiting Guide</h3>
+      
+      <div class="guide-step">
+        <div class="step-number">1</div>
+        <div class="step-text">
+          <h4>Monitor Dashboard</h4>
+          <p>Keep this screen open. Your position in the queue and wait time updates automatically.</p>
+        </div>
+      </div>
+      
+      <div class="guide-step">
+        <div class="step-number">2</div>
+        <div class="step-text">
+          <h4>Listen for Alerts</h4>
+          <p>We will vibrate your phone and play a chime when it is your turn.</p>
+        </div>
+      </div>
+      
+      <div class="guide-step">
+        <div class="step-number">3</div>
+        <div class="step-text">
+          <h4>Proceed to Counter</h4>
+          <p>When your ticket number turns green and says "Now Serving", please go to the desk.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="help-fab" onclick="openGuide()" title="How to use">?</button>
+
+   <div class="main">
+    <div class="header-container">
+      <div class="brand-mark">Q</div>
+      <h1>QFlow Live Queue</h1>
+      <div class="business-name">Smart Queue Management</div>
+    </div>
+    
+    <p style="text-align: center; color: #64748b; margin-bottom: 24px; font-size: 14px;">Real-time queue updates</p>
+
+    {% if message %}
+      <div class="info-card">
+        <p>{{ message }}</p>
+      </div>
+    {% endif %}
+
+    <div id="announcement-banner" aria-hidden="true" style="display:none;"></div>
+
+    {% if ticket_id %}
+      <div class="info-card" style="background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border-color:#bfdbfe;">
+  <p style="text-align:center;font-size:16px;">Your Active Ticket</p>
+  <p style="text-align:center;font-size:32px;font-weight:800;color:#2563eb;margin:8px 0;">#{{ ticket_id }}</p>
+  <p id="wait-count" style="text-align:center;color:#b45309;font-weight:600;margin-bottom:8px;font-size:14px;min-height:20px;">Calculating...</p>
+  <p style="text-align:center;font-size:13px;color:var(--muted);">Keep this screen open for real-time updates</p>
+</div>
+    {% else %}
+      <div class="info-card" style="background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3);">
+        <p style="text-align: center; color: #f59e0b;">⚠️ No active ticket</p>
+        <p style="text-align: center; margin-top: 8px;"><a href="{{ url_for('landing_page') }}" style="font-size: 15px;">Get your ticket here →</a></p>
+      </div>
+    {% endif %}
+
+    <h2> Current Queue </h2>
+    
+    <div class="queue-container">
+      <table id="queue-table">
+        <thead>
+            <tr>
+              <th>Ticket</th><th>Reason</th><th>Status</th>
+              <th>Time</th><th>Name</th><th>Role</th><th>ID</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ticket in queue %}
+            <tr data-ticket-id="{{ ticket.ticket }}" class="{{ 'serving-row' if ticket.status == 'serving' else '' }}">
+              <td>#{{ ticket.ticket }}</td>
+              <td>{{ ticket.reason }}</td>
+              <td><span class="status-{{ ticket.status }}">{{ ticket.status }}</span></td>
+              <td style="font-size: 11px;">{{ ticket.created_at }}</td>
+              <td>{{ ticket.name }}</td>
+              <td>{{ ticket.role }}</td>
+              <td>{{ ticket.student_id or '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <audio id="sound-turn" src="{{ url_for('static', filename='css/sound/ring1.mp3') }}" preload="auto"></audio>
+  <audio id="sound-soon" src="{{ url_for('static', filename='css/sound/ring2.mp3') }}" preload="auto"></audio>
+  <audio id="sound-check" src="{{ url_for('static', filename='css/sound/check.mp3') }}" preload="auto"></audio>
+
+  <div id="toast-container"></div>
+
+  <div id="alertModal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div id="alertCard">
+      <h3 id="alertTitle">Notification</h3>
+      <div id="alertBody">Message</div>
+     <div id="alertActions">
+        <button id="alertOk" class="btn btn-primary" style="width: 100%;"> OK </button>
+      </div>
+      </div>
+    </div>
+  </div>
+
+ <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+<script>
+// Ticket names/reasons come from public form fields anyone can type
+// into - always escape before dropping them into innerHTML.
+function escapeHtml(value) {
+  if (value === null || value === undefined) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/* ---------- Guide Modal Logic ---------- */
+let hasUserInteracted = false;
+
+function openGuide() {
+    document.getElementById('guideModal').style.display = 'flex';
+}
+function closeGuide(e) {
+    if (e.target === document.getElementById('guideModal') || e.target.classList.contains('close-guide')) {
+        document.getElementById('guideModal').style.display = 'none';
+    }
+}
+
+/* ---------- Helpers ---------- */
+const toastContainer = document.getElementById("toast-container");
+
+function showToast(message, type = "info") {
+    const t = document.createElement("div");
+    t.classList.add(type);
+    t.textContent = message;
+    toastContainer.appendChild(t);
+
+    if (navigator.vibrate) navigator.vibrate(50);
+
+    setTimeout(() => {
+        t.style.opacity = "0";
+        t.style.transform = "translateX(100%)";
+        setTimeout(() => t.remove(), 300);
+    }, 5000);
+}
+
+function safePlay(el) {
+    if (!el) return;
+    if (!hasUserInteracted) { 
+        console.log("Blocked audio: User has not interacted yet.");
+        return; 
+    } 
+    
+    el.currentTime = 0;
+    el.play().catch((e) => {
+        console.warn("Audio playback failed:", e);
+    });
+}
+
+const soundTurn = document.getElementById("sound-turn");
+const soundSoon = document.getElementById("sound-soon");
+const soundCheck = document.getElementById("sound-check");
+
+function unlockAudioOnce() {
+    const unlock = () => {
+        hasUserInteracted = true; // <--- ADD THIS
+        [soundTurn, soundSoon, soundCheck].forEach(el => {
+            if (el) el.play().then(() => el.pause()).catch(() => {});
+        });
+        ["click", "keydown", "touchstart"].forEach(ev => document.removeEventListener(ev, unlock));
+    };
+    ["click", "keydown", "touchstart"].forEach(ev => document.addEventListener(ev, unlock));
+}
+
+function formatTime(timeString) {
+    if (!timeString) return "";
+    if (timeString.includes("M")) return timeString;
+
+    const [hour, minute] = timeString.split(":");
+    const h = parseInt(hour, 10);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+
+    return `${h12}:${minute} ${ampm}`;
+}
+
+function adjustBodyPadding(isVisible) {
+    const banner = document.getElementById('break-banner');
+    if (isVisible && banner) {
+        const height = banner.offsetHeight || 60;
+        document.body.style.paddingTop = height + "px";
+    } else {
+        document.body.style.paddingTop = "0px";
+    }
+}
+
+let hasNotifiedSoon = false;
+
+function updatePositionFromDOM() {
+    const myIdRaw = document.body.getAttribute("data-ticket-id");
+    const myId = myIdRaw ? myIdRaw.trim() : null;
+    if (!myId) return;
+
+    const rows = document.querySelectorAll("#queue-table tbody tr");
+    let peopleAhead = 0;
+    let found = false;
+
+    rows.forEach(row => {
+        if (found) return;
+
+        const rowIdRaw = row.getAttribute("data-ticket-id");
+        const rowId = rowIdRaw ? rowIdRaw.trim() : "";
+        const statusSpan = row.querySelector("[class^='status-']");
+        const status = statusSpan ? statusSpan.textContent.trim().toLowerCase() : "";
+
+        if (rowId == myId) {
+            found = true;
+            const label = document.getElementById("wait-count");
+            if (label) {
+                if (status === "serving") {
+                    label.textContent = "You are currently being served!";
+                    label.style.color = "#10b981";
+                } else {
+                    label.textContent = `⏳ There are ${peopleAhead} people ahead of you`;
+                    label.style.color = "#f59e0b";
+
+                    if (peopleAhead === 5 && !hasNotifiedSoon) {
+                        safePlay(soundSoon);
+                        showAlertModal(
+                            "Heads Up!",
+                            "There are exactly 5 people ahead of you. Please stay close to the counter.",
+                            { buttonText: "OK", playRing: false, ackType: null }
+                        );
+                        hasNotifiedSoon = true;
+                    }
+                }
+            }
+        } else if (status === "waiting" || status === "serving") {
+            peopleAhead++;
+        }
+    });
+}
+
+/* ---------- Modal Logic ---------- */
+const alertModal = document.getElementById("alertModal");
+const alertTitle = document.getElementById("alertTitle");
+const alertBody = document.getElementById("alertBody");
+const alertOk = document.getElementById("alertOk");
+
+let modalRedirectAfterAck = null;
+let modalAckType = null;
+let modalTicketId = null;
+
+function submitAcknowledgment(ticketId, type) {
+    const formData = new URLSearchParams();
+    formData.append('ticket_id', ticketId);
+    formData.append('info', type);
+
+    fetch('/ack_ticket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData
+    }).then(response => {
+        if (response.ok) {
+            safePlay(soundCheck);
+            showToast("Confirmed: Heading to counter!", "success");
+        } else {
+            showToast("Error logging confirmation.", "error");
+        }
+    }).catch(error => {
+        console.error('Error submitting ACK:', error);
+        showToast("Network error during confirmation.", "error");
+    });
+}
+
+function hideModalAndCleanUp() {
+    modalTicketId = null;
+    modalAckType = null;
+
+    try {
+        if (soundTurn) {
+            soundTurn.loop = false;
+            soundTurn.pause();
+            soundTurn.currentTime = 0;
+        }
+        if (soundSoon) {
+            soundSoon.pause();
+            soundSoon.currentTime = 0;
+        }
+    } catch(e){}
+
+    alertModal.style.display = "none";
+    alertModal.setAttribute('aria-hidden', 'true');
+
+    if (modalRedirectAfterAck) {
+        window.location.href = modalRedirectAfterAck;
+        modalRedirectAfterAck = null;
+    }
+}
+
+function showAlertModal(title, message, { redirectAfterAck = null, ackType = null, playRing = true } = {}) {
+    alertTitle.textContent = title || "Notification";
+    alertBody.textContent = message || "";
+    modalRedirectAfterAck = redirectAfterAck;
+    modalAckType = ackType;
+    modalTicketId = myTicketId;
+
+    alertModal.style.display = "flex";
+    alertModal.setAttribute('aria-hidden', 'false');
+
+    if (navigator.vibrate) navigator.vibrate([100,50,100,50,100]);
+
+    if (playRing) {
+        try {
+            soundTurn.loop = true;
+            soundTurn.currentTime = 0;
+            soundTurn.play().catch(()=>{});
+        } catch(e){}
+    }
+}
+
+alertOk.addEventListener("click", function() {
+    if (modalTicketId && modalAckType) {
+        submitAcknowledgment(modalTicketId, modalAckType);
+    }
+    hideModalAndCleanUp();
+});
+
+/* ---------- Announcements ---------- */
+const announcementBanner = document.getElementById('announcement-banner');
+
+function showAnnouncement(text) {
+    if (!announcementBanner) return;
+    if (announcementBanner.textContent === text && announcementBanner.style.display !== 'none') return;
+
+    announcementBanner.textContent = text;
+    announcementBanner.style.display = 'block';
+    announcementBanner.style.opacity = '1';
+
+    if (navigator.vibrate) navigator.vibrate(50);
+}
+
+function hideAnnouncement() {
+    if (!announcementBanner) return;
+    announcementBanner.style.display = 'none';
+    announcementBanner.textContent = '';
+}
+
+/* ---------- Socket ---------- */
+const socket = io(window.location.origin, {
+    transports: ["websocket"],
+    cors: { origin: "*" }
+});
+
+const userId = document.body.getAttribute("data-user-id");
+const myTicketId = document.body.getAttribute("data-ticket-id");
+
+socket.on("connect", () => {
+    if (userId) socket.emit("join", { user_id: userId });
+});
+
+socket.on('break_announcement', (data) => {
+    const banner = document.getElementById('break-banner');
+    const timeSpan = document.getElementById('banner-time');
+
+    if (data.active && data.time) {
+        timeSpan.textContent = formatTime(data.time);
+        banner.style.display = 'block';
+        adjustBodyPadding(true);
+    } else {
+        banner.style.display = 'none';
+        adjustBodyPadding(false);
+    }
+});
+
+socket.on("queue_update", (payload) => {
+    const table = document.getElementById("queue-table");
+    const queue = payload.queue || [];
+    const nowServing = payload.current_ticket;
+    const nextTicket = payload.next_ticket;
+
+    let tbody = table.querySelector('tbody');
+    if (!tbody) {
+        table.innerHTML = `<thead><tr><th>Ticket</th><th>Reason</th><th>Status</th><th>Time</th><th>Name</th><th>Role</th><th>ID</th></tr></thead><tbody></tbody>`;
+        tbody = table.querySelector('tbody');
+    }
+
+    tbody.innerHTML = queue.map(item => `
+        <tr data-ticket-id="${escapeHtml(item.ticket)}" ${item.status === 'serving' ? "class='serving-row'" : ""}>
+            <td>#${escapeHtml(item.ticket)}</td>
+            <td>${escapeHtml(item.reason) || '-'}</td>
+            <td><span class="status-${escapeHtml(item.status || 'waiting')}">${escapeHtml(item.status) || '-'}</span></td>
+            <td style="font-size: 11px;">${escapeHtml(item.created_at) || '-'}</td>
+            <td>${escapeHtml(item.name) || '-'}</td>
+            <td>${escapeHtml(item.role) || '-'}</td>
+            <td>${escapeHtml(item.student_id) || '-'}</td>
+        </tr>`).join("");
+
+    updatePositionFromDOM();
+
+    if (nowServing) {
+        const nextText = nextTicket ? ` | Next: #${nextTicket.ticket}` : '';
+        showAnnouncement(`🔔 Now Serving: #${nowServing.ticket} — ${nowServing.name}${nextText}`);
+    } else {
+        hideAnnouncement();
+    }
+});
+
+socket.on("ticket_status", (data) => {
+    const isRecall = data.message.includes("RECALL");
+
+    document.title = "IT'S YOUR TURN!";
+    const msg = data?.message || "It's your turn! Please proceed to the counter.";
+
+    showAlertModal("It's your turn!", msg, {
+        ackType: isRecall ? 'RECALL_ACK' : 'INITIAL_CALL_ACK'
+    });
+});
+
+socket.on("force_logout", (data) => {
+    safePlay(soundCheck);
+    showAlertModal(
+        "Service Complete",
+        data?.message || "Your service is complete. Thank you!",
+        { redirectAfterAck: "{{ url_for('landing_page') }}", ackType: null, playRing: false }
+    );
+});
+
+socket.on("announcement", (data) => {
+    if (!data || !data.message) return;
+    showToast(data.message, "info");
+});
+
+/* ---------- Touch Events ---------- */
+let touchStartY = 0;
+document.addEventListener('touchstart', e => {
+    touchStartY = e.touches[0].clientY;
+});
+
+document.addEventListener('touchmove', e => {
+    const diff = e.touches[0].clientY - touchStartY;
+    if (diff > 0 && window.scrollY === 0) {}
+});
+
+function openContact() {
+    const modal = document.getElementById('contactModal');
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeContact(e) {
+    if (e.target.id === 'contactModal' || e.target.classList.contains('close-guide')) {
+        document.getElementById('contactModal').style.display = 'none';
+    }
+}
+
+/* ---------- Initial Position Check ---------- */
+document.addEventListener("DOMContentLoaded", () => {
+    console.log("DOM Loaded, forcing position update...");
+    updatePositionFromDOM();
+    setTimeout(updatePositionFromDOM, 500);
+});
+</script>
+
+  <div id="contactModal" class="guide-overlay" style="z-index: 12000;" onclick="closeContact(event)">
+  <div class="guide-card" style="max-width: 360px; text-align: center;">
+    <button class="close-guide" onclick="closeContact(event)">&times;</button>
+    
+    <div class="guide-title" style="margin-bottom: 16px; font-size: 20px;">Contact </div>
+    
+    <p style="color: #94a3b8; margin-bottom: 20px; font-size: 14px; line-height: 1.5;">
+      If you encounter any system issues or bugs, please reach out to the developer:
+    </p>
+    
+    <div style="background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 14px; border-radius: 12px; font-family: monospace; font-size: 13px; border: 1px dashed #10b981; word-break: break-all;">
+      jayrolldbarreto@gmail.com
+    </div>
+  </div>
+</div>
+
+<div class="dev-contact" onclick="openContact()" title="Contact Problems">
+    📞
+</div>
+</div>
+</body>
+</html>

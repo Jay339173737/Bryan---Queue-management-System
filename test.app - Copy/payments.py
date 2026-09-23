@@ -26,6 +26,9 @@ def create_checkout_session(line_items, batch_id, description,
     Returns the PayMongo checkout URL the user should be redirected to.
     Raises RuntimeError with a readable message on failure.
     """
+    for item in line_items:
+        item.setdefault("currency", "PHP")
+
     attributes = {
         "send_email_receipt": False,
         "show_description": True,

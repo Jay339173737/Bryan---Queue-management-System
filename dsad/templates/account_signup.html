@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QFlow — Create Account</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/account.css') }}">
+</head>
+<body>
+    <div class="account-card">
+        <div class="card-band">
+            <div class="brand-mark">Q</div>
+            <h1>Create Your Account</h1>
+            <p>Pay online and activate tickets instantly</p>
+        </div>
+
+        <div class="card-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, msg in messages %}
+                  <div class="flash {{ category }}">{{ msg }}</div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="{{ url_for('account_signup') }}">
+                <div class="field">
+                    <label for="student_id">Account / Member ID</label>
+                    <input type="text" id="student_id" name="student_id" placeholder="e.g. M-10234" required>
+                    <p class="hint">Use the ID issued to you by the front desk.</p>
+                </div>
+
+                <div class="row-2">
+                    <div class="field">
+                        <label for="first_name">First Name</label>
+                        <input type="text" id="first_name" name="first_name" placeholder="Juan" required>
+                    </div>
+                    <div class="field">
+                        <label for="last_name">Last Name</label>
+                        <input type="text" id="last_name" name="last_name" placeholder="Dela Cruz" required>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="At least 8 characters" required>
+                </div>
+
+                <div class="field">
+                    <label for="confirm_password">Confirm Password</label>
+                    <input type="password" id="confirm_password" name="confirm_password" placeholder="Repeat your password" required>
+                </div>
+
+                <button class="btn" type="submit">Create Account</button>
+            </form>
+
+            <p class="switch-link">Already have an account? <a href="{{ url_for('account_login') }}">Log in</a></p>
+        </div>
+    </div>
+</body>
+</html>
