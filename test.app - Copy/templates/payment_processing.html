@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QFlow — Confirming Payment</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/account.css') }}">
+</head>
+<body>
+    <div class="pay-overlay" style="display:flex;">
+        <div class="pay-popup-card" style="max-width:380px;">
+            <div class="pay-popup-spinner" id="spinner"><div class="ring"></div><div class="check">✓</div></div>
+            <h3 id="pTitle">Confirming Payment</h3>
+            <p id="pText">Waiting for the gateway to confirm…</p>
+
+            <div class="pay-popup-steps" style="margin-bottom:18px;">
+                <div class="pstep done"><span class="dot"></span> Payment submitted</div>
+                <div class="pstep active" id="psVerify"><span class="dot"></span> Confirming with gateway…</div>
+                <div class="pstep" id="psDone"><span class="dot"></span> {{ 'Issuing your ticket' if kind == 'ticket' else 'Activating your service' }}</div>
+            </div>
+
+            <div class="price-card" style="text-align:left;">
+                <div class="price-row"><span>Service</span><span>{{ label }}</span></div>
+                <div class="price-row total"><span>Amount</span><span>₱{{ amount }}</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    const BATCH = "{{ batch_id }}", KIND = "{{ kind }}";
+    let tries = 0;
+    function done() {
+        document.getElementById('spinner').classList.add('done');
+        document.getElementById('psVerify').classList.replace('active', 'done');
+        document.getElementById('psDone').classList.add('done');
+        document.getElementById('pTitle').textContent = 'Payment Confirmed!';
+        document.getElementById('pText').textContent = 'Finishing up…';
+        setTimeout(() => {
+            window.location.href = "{{ url_for('payment_return') }}?batch_id=" + BATCH + "&kind=" + KIND;
+        }, 1200);   // → _finish_paid_flow() issues the ticket → customer portal
+    }
+    function poll() {
+        fetch("{{ url_for('payment_status', batch_id=batch_id) }}")
+            .then(r => r.json())
+            .then(d => {
+                if (d.status === 'paid') return done();
+                if (d.status === 'failed' || d.status === 'expired') {
+                    window.location.href = "{{ url_for('payment_return') }}?batch_id=" + BATCH + "&kind=" + KIND;
+                    return;
+                }
+                if (++tries > 60) {   // ~3 min
+                    document.getElementById('pText').textContent =
+                        'Still waiting on the gateway — check your receipt email or contact support.';
+                    return;
+                }
+                setTimeout(poll, 3000);
+            })
+            .catch(() => setTimeout(poll, 3000));
+    }
+    poll();
+    </script>
+</body>
+</html>

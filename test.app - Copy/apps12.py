@@ -270,9 +270,38 @@ def process_ticket_request():
             
             flash(msg, "warning")
             return redirect(url_for("landing_page"))
-            
+        
         else:
-            # --- Create NEW Ticket ---
+            if payment_method == "online" and PAYMONGO_ENABLED and amount_due > 0:
+                batch_id = str(uuid.uuid4())
+                checkout = create_checkout_session(
+                    line_items=[{"name": visit_purpose[:60],
+                                 "amount": amount_due * 100,
+                                 "quantity": 1}],
+                    batch_id=batch_id,
+                    description=f"QFlow ticket fee — {visit_purpose[:60]}",
+                    success_url=url_for("payment_return", batch_id=batch_id,
+                                        _external=True, kind="ticket"),
+                    cancel_url=url_for("landing_page", _external=True),
+                )
+                db.session.add(AdvancePayment(
+                    customer_id=customer_record.id,
+                    document_name=visit_purpose[:200],
+                    price=amount_due,
+                    payment_status="pending",
+                    payment_batch_id=batch_id,
+                    paymongo_checkout_id=checkout["checkout_id"],
+                    paymongo_payment_intent=checkout["payment_intent_id"],
+                    flow_kind="ticket",
+                ))
+                db.session.commit()
+                session["pending_ticket_reason"] = visit_purpose
+
+                # Popup flow needs the checkout URL as JSON instead of a redirect
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return {"checkout_url": checkout["checkout_url"]}, 200
+                return redirect(checkout["checkout_url"])
+
             new_ticket = QueueTicket(
                 visit_reason=visit_purpose,
                 customer_ref_id=customer_record.id,
@@ -281,7 +310,7 @@ def process_ticket_request():
                 amount_due=amount_due
             )
             db.session.add(new_ticket)
-            
+
             try:
                 # 1. Commit first to generate the Ticket ID (e.g., 8)
                 db.session.commit()
@@ -933,6 +962,8 @@ def pay_advance():
         db.session.commit()
 
         if checkout:
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return {"checkout_url": checkout["checkout_url"]}, 200
             return redirect(checkout["checkout_url"])   # → PayMongo hosted page
 
         flash("Payment recorded (gateway not configured).", "success")
@@ -963,6 +994,14 @@ def activate_payment(batch_id):
 
     if not batch_rows:
         flash("Payment batch not found or already used.", "danger")
+        return redirect(url_for("account_dashboard"))
+
+    # Now that pay_advance can leave a batch "pending" until PayMongo's
+    # webhook confirms it, activation must check that too - otherwise a
+    # student can hit this route directly for an unpaid batch and get
+    # the service for free.
+    if any(row.payment_status != "paid" for row in batch_rows):
+        flash("Payment not confirmed yet. Please complete checkout first.", "warning")
         return redirect(url_for("account_dashboard"))
 
     document_names = [row.document_name for row in batch_rows]
@@ -1022,10 +1061,91 @@ def edit_name():
         flash("Name updated successfully.", "success")
         return redirect(url_for("landing_page"))
 
-    # There is no standalone "edit name" page - editing happens inline
-    # on the landing page via the AJAX call above. A bare GET here (or a
-    # non-AJAX request) just sends the user back there.
     return redirect(url_for("landing_page"))
+
+@app.route("/paymongo/webhook", methods=["POST"])
+def paymongo_webhook():
+    raw = request.get_data()
+    if not verify_webhook(raw, request.headers.get("Paymongo-Signature", "")):
+        return {"error": "invalid signature"}, 400
+
+    event = request.json.get("data", {})
+    event_type = event.get("attributes", {}).get("type", "")
+
+    if event_type == "checkout_session.payment.paid":
+        sess = event["attributes"]["data"]
+        ref = sess["attributes"].get("reference_number") \
+              or sess["attributes"].get("metadata", {}).get("batch_id")
+        if ref:
+            rows = AdvancePayment.query.filter_by(payment_batch_id=ref,
+                                                  payment_status="pending").all()
+            for row in rows:
+                row.payment_status = "paid"
+            if rows:
+                db.session.commit()
+                print(f"✅ PayMongo paid: batch {ref} ({len(rows)} row(s))")
+    return {"received": True}, 200
+
+
+@app.route("/payment/return")
+def payment_return():
+    batch_id = request.args.get("batch_id", "")
+    kind = request.args.get("kind", "advance")
+    row = AdvancePayment.query.filter_by(payment_batch_id=batch_id).first()
+    if not row:
+        flash("Payment record not found.", "danger")
+        return redirect(url_for("landing_page"))
+
+    if row.payment_status == "paid":
+        return _finish_paid_flow(row, kind)
+    if row.payment_status in ("failed", "expired"):
+        flash("Payment was not completed. You have not been charged.", "warning")
+        return redirect(url_for("pay_advance") if kind == "advance"
+                        else url_for("landing_page"))
+
+    # Still pending → webhook hasn't arrived yet → show progress page (polls below)
+    return render_template("payment_processing.html",
+                           batch_id=batch_id, kind=kind,
+                           amount=row.price,
+                           label=DOCUMENT_LABELS.get(row.document_name, row.document_name))
+
+
+@app.route("/payment/status/<batch_id>")
+def payment_status(batch_id):
+    row = AdvancePayment.query.filter_by(payment_batch_id=batch_id).first()
+    if not row:
+        return {"status": "unknown"}, 404
+    return {"status": row.payment_status}
+
+
+def _finish_paid_flow(row, kind):
+    """Called once payment is confirmed. Issues the ticket for 'ticket' flow."""
+    if kind == "ticket":
+        existing = QueueTicket.query.filter(
+            QueueTicket.customer_ref_id == row.customer_id,
+            QueueTicket.ticket_status.in_(["waiting", "serving"])).first()
+        if not existing:
+            new_ticket = QueueTicket(
+                visit_reason=row.document_name,
+                customer_ref_id=row.customer_id,
+                payment_method="online",
+                payment_status="paid",
+                amount_due=row.price,
+            )
+            db.session.add(new_ticket)
+            db.session.commit()
+            session["user_id"] = row.customer_id
+            session["ticket_message"] = f"✅ Payment confirmed! Ticket #{new_ticket.id} issued."
+            resp = make_response(redirect(url_for("customer_portal")))
+            _set_lock(resp, new_ticket.id)
+            push_queue_update(socketio)
+            return resp
+        session["ticket_message"] = f"⚠️ You already have an active ticket (#{existing.id})."
+        return redirect(url_for("customer_portal"))
+
+    # advance flow → back to dashboard with the paid batch ready to activate
+    flash("Payment confirmed! Your service is ready to activate.", "success")
+    return redirect(url_for("account_dashboard"))
 
 # ========================================
 # Application Entry Point

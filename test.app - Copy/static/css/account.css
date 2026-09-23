@@ -137,3 +137,55 @@ body{
 .doc-checklist .doc-price{font-weight:700;color:var(--ink);font-size:13.5px}
 
 @media(max-width:460px){.card-body{padding:22px 20px 24px}.row-2{grid-template-columns:1fr}}
+
+/* ---------- Payment progress ---------- */
+.pay-spinner{position:relative;width:84px;height:84px;margin:10px auto 22px}
+.pay-spinner .ring{
+  position:absolute;inset:0;border-radius:50%;
+  border:5px solid var(--blue-100);border-top-color:var(--blue-600);
+  animation:spin 1s linear infinite;
+}
+.pay-spinner .check{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:34px;font-weight:800;color:var(--green);opacity:0;transform:scale(.5);
+  transition:all .35s ease;
+}
+.pay-spinner.complete .ring{animation:none;border-color:var(--green);opacity:0;transition:opacity .3s}
+.pay-spinner.complete .check{opacity:1;transform:scale(1)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.pay-steps{display:flex;flex-direction:column;gap:12px;text-align:left;
+  max-width:290px;margin:0 auto 20px}
+.pay-step{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted);
+  font-weight:500;transition:color .3s}
+.pay-step .dot{width:12px;height:12px;border-radius:50%;background:#e2e8f0;flex-shrink:0;
+  transition:all .3s}
+.pay-step.done{color:var(--slate)}
+.pay-step.done .dot{background:var(--green)}
+.pay-step.active{color:var(--blue-700);font-weight:700}
+.pay-step.active .dot{background:var(--blue-600);
+  box-shadow:0 0 0 4px rgba(37,99,235,.18);animation:pulse 1.2s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 8px rgba(37,99,235,.06)}}
+
+/* ---------- Payment popup (click-time modal) ---------- */
+.pay-overlay{position:fixed;inset:0;background:rgba(15,23,42,.6);backdrop-filter:blur(6px);
+  z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px}
+.pay-popup-card{background:#fff;border-radius:22px;padding:32px 28px;max-width:360px;width:100%;
+  text-align:center;box-shadow:0 24px 60px rgba(15,23,42,.35);animation:popIn .25s ease-out}
+@keyframes popIn{from{opacity:0;transform:scale(.94) translateY(8px)}to{opacity:1;transform:none}}
+.pay-popup-card h3{font-size:18px;font-weight:800;margin-bottom:6px}
+.pay-popup-card>p{font-size:13.5px;color:var(--slate);margin-bottom:20px}
+.pay-popup-spinner{position:relative;width:76px;height:76px;margin:0 auto 18px}
+.pay-popup-spinner .ring{position:absolute;inset:0;border-radius:50%;border:5px solid var(--blue-100);
+  border-top-color:var(--blue-600);animation:spin 1s linear infinite}
+.pay-popup-spinner .check{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:32px;font-weight:800;color:var(--green);opacity:0;transform:scale(.5);transition:all .35s}
+.pay-popup-spinner.done .ring{animation:none;opacity:0;transition:opacity .3s}
+.pay-popup-spinner.done .check{opacity:1;transform:scale(1)}
+.pay-popup-steps{display:flex;flex-direction:column;gap:10px;text-align:left;max-width:250px;margin:0 auto}
+.pstep{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--muted);font-weight:500;transition:color .3s}
+.pstep .dot{width:11px;height:11px;border-radius:50%;background:#e2e8f0;flex-shrink:0;transition:all .3s}
+.pstep.done{color:var(--slate)}
+.pstep.done .dot{background:var(--green)}
+.pstep.active{color:var(--blue-700);font-weight:700}
+.pstep.active .dot{background:var(--blue-600);box-shadow:0 0 0 4px rgba(37,99,235,.18);animation:pulse 1.2s infinite}

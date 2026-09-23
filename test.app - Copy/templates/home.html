@@ -152,14 +152,6 @@
 
       <button type="submit" id="ticketBtn">Get My Ticket</button>
     </form>
-      <script>
-      document.querySelector('form[method="POST"]').addEventListener('submit', () => {
-          const online = document.querySelector("input[name='payment_method']:checked")?.value === 'online';
-          const btn = document.getElementById('ticketBtn');
-          btn.disabled = true;
-          btn.textContent = online ? 'Redirecting to secure payment…' : 'Issuing ticket…';
-      });
-      </script>
 
     <p style="text-align:center;margin-top:20px;font-size:14px;">
       Already have a ticket? <a href="{{ url_for('recover_ticket') }}">Recover your ticket</a>
@@ -299,6 +291,86 @@
         } else { alert(data.message||"Error updating name."); }
       });
     });
+  </script>
+
+  <!-- Payment progress popup -->
+  <div id="payPopup" class="pay-overlay" style="display:none;">
+    <div class="pay-popup-card">
+      <div class="pay-popup-spinner" id="paySpinner"><div class="ring"></div><div class="check">✓</div></div>
+      <h3 id="payPopupTitle">Preparing Secure Checkout</h3>
+      <p id="payPopupText">Talking to the payment gateway…</p>
+      <div class="pay-popup-steps">
+        <div class="pstep active" id="ps1"><span class="dot"></span> Preparing checkout</div>
+        <div class="pstep" id="ps2"><span class="dot"></span> Redirecting to PayMongo</div>
+        <div class="pstep" id="ps3"><span class="dot"></span> Confirming payment</div>
+        <div class="pstep" id="ps4"><span class="dot"></span> Issuing your ticket</div>
+      </div>
+      <button class="btn secondary" id="payPopupClose" style="display:none;" onclick="closePayPopup()">Close</button>
+    </div>
+  </div>
+
+  <script>
+  /* ---------- Online payment popup flow ---------- */
+  const payPopup = document.getElementById('payPopup');
+
+  function setStep(n, title, text) {
+      for (let i = 1; i <= 4; i++) {
+          const el = document.getElementById('ps' + i);
+          el.classList.remove('active', 'done');
+          if (i < n) el.classList.add('done');
+          else if (i === n) el.classList.add('active');
+      }
+      if (title) document.getElementById('payPopupTitle').textContent = title;
+      if (text)  document.getElementById('payPopupText').textContent = text;
+  }
+  function openPayPopup() {
+      document.getElementById('paySpinner').classList.remove('done');
+      document.getElementById('payPopupClose').style.display = 'none';
+      setStep(1, 'Preparing Secure Checkout', 'Talking to the payment gateway…');
+      payPopup.style.display = 'flex';
+  }
+  function closePayPopup() { payPopup.style.display = 'none'; }
+  function payError(msg) {
+      setStep(1, 'Something went wrong', msg);
+      document.getElementById('payPopupClose').style.display = 'block';
+  }
+
+  /* Intercept the ticket form ONLY when online payment is selected */
+  document.querySelector('form[action*="get_ticket"]').addEventListener('submit', function (e) {
+      const isOnline = document.querySelector("input[name='payment_method']:checked")?.value === 'online';
+      if (!isOnline) {
+          const btn = document.getElementById('ticketBtn');
+          btn.disabled = true;
+          btn.textContent = 'Issuing ticket…';
+          return;                          // cash → normal submit, no popup needed
+      }
+      e.preventDefault();
+      openPayPopup();
+
+      fetch(this.action, {
+          method: 'POST',
+          body: new FormData(this),
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      .then(async r => {
+          const ct = r.headers.get('content-type') || '';
+          if (ct.includes('application/json')) {
+              const data = await r.json();
+              if (data.checkout_url) {
+                  setStep(2, 'Redirecting to PayMongo', 'Complete your payment in the secure window…');
+                  setTimeout(() => { window.location.href = data.checkout_url; }, 900);
+              } else {
+                  payError(data.message || 'Could not start checkout. Please try again.');
+              }
+          } else {
+              // Server responded with a page (duplicate-name warning, flash error, etc.)
+              // → just show that page instead of the popup
+              const html = await r.text();
+              document.open(); document.write(html); document.close();
+          }
+      })
+      .catch(() => payError('Network error. Please check your connection and try again.'));
+  });
   </script>
 </body>
 </html>
