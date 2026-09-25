@@ -21,11 +21,7 @@ def _auth():
 
 def create_checkout_session(line_items, batch_id, description,
                             success_url, cancel_url):
-    """
-    line_items: [{"name": ..., "amount": centavos(int), "quantity": 1}, ...]
-    Returns the PayMongo checkout URL the user should be redirected to.
-    Raises RuntimeError with a readable message on failure.
-    """
+                            
     for item in line_items:
         item.setdefault("currency", "PHP")
 

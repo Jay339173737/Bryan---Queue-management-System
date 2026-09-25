@@ -4,7 +4,7 @@
   --blue-700:#1d4ed8; --blue-600:#2563eb; --blue-500:#3b82f6; --blue-50:#eff6ff; --blue-100:#dbeafe;
   --ink:#0f172a; --slate:#475569; --muted:#94a3b8;
   --border:#e2e8f0; --bg:#f5f8fe; --card:#fff;
-  --green:#2563eb; --amber:#f59e0b; --red:#ef4444;
+  --green:#10b981; --amber:#f59e0b; --red:#ef4444;
   --radius:16px;
   --shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px rgba(15,23,42,.06);
 }
@@ -119,7 +119,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--i
 
 /* ---------- Flash & toast ---------- */
 .flash{margin:1rem 0;padding:.8rem 1.1rem;border-radius:12px;font-weight:500;font-size:14px;border:1px solid}
-.flash.success{background:#eff6ff;color:#1e40af;border-color:#bfdbfe}
+.flash.success{background:#ecfdf5;color:#047857;border-color:#a7f3d0}
 .flash.info{background:var(--blue-50);color:#1e40af;border-color:var(--blue-100)}
 .flash.danger{background:#fef2f2;color:#b91c1c;border-color:#fecaca}
 #admin-toast-container{position:fixed;top:18px;right:18px;z-index:5000;display:flex;flex-direction:column;gap:10px}
@@ -158,4 +158,4 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--i
   box-shadow:0 0 0 2px rgba(0,0,0,.04);
 }
 .pay-dot.cash{background:#dc2626;}
-.pay-dot.online,.pay-dot.advance{background:#2563eb;}
+.pay-dot.online,.pay-dot.advance{background:#16a34a;}

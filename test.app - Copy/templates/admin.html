@@ -12,7 +12,7 @@
   <style>
     /* --- Flash Messages --- */
     .flash { margin: 1rem 0; padding: 0.875rem 1.25rem; border-radius: 12px; font-weight: 500; }
-    .flash.success { background: var(--nwssu-green-light); color: var(--nwssu-green-deep); border-left: 4px solid var(--nwssu-green-primary); }
+    .flash.success { background: #eff6ff; color: #1e40af; border-left: 4px solid #2563eb; }
     .flash.info { background: #e0f2fe; color: #0c4a6e; border-left: 4px solid #0284c7; }
     .flash.danger { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
     
@@ -76,7 +76,7 @@
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           {% for category, msg in messages %}
-            <div class="flash {{ category }}">{{ msg }}</div>
+            <div class="flash {{ category }}">{{ msg | replace('✅','') | replace('✔️','') | replace('✔','') | replace('✓','') | replace('❌','') | replace('❎','') | replace('⚠️','') | replace('⚠','') | replace('🎉','') | replace('🎊','') | replace('🎟️','') | replace('🎟','') | replace('⏰','') | replace('🔔','') | replace('📞','') | replace('👋','') | replace('💳','') | replace('💵','') | replace('🟢','') | replace('🛠️','') | replace('🛠','') | replace('☕','') | replace('⏳','') | replace('🚪','') | replace('👤','') | replace('🚶','') | replace('💼','') | replace('📄','') | replace('💬','') | trim }}</div>
           {% endfor %}
         {% endif %}
       {% endwith %}
@@ -375,7 +375,7 @@
     }
 
     // --- Socket Events ---
-    socket.on("connect", () => { console.log("🟢 Admin connected"); });
+    socket.on("connect", () => { console.log("Admin connected"); });
 
     socket.on('flow_status_update', (data) => {
       const isActive = data.status === 'active';
@@ -429,8 +429,8 @@
       const ticketNum = data.ticket || '?';
       const studentName = data.name || 'Student';
       
-      // Create the text: "👋 Ticket #8 (Jayrold) is here!"
-      const message = `👋 Ticket #${ticketNum} (${studentName}) is here!`;
+      // Create the text: "Ticket #8 (Jayrold) is here!"
+      const message = `Ticket #${ticketNum} (${studentName}) is here!`;
       
       // Show the toast (Blue color for info)
       // We create a custom style for this specific toast to make it stand out
@@ -488,7 +488,7 @@
     hijackForm('recallForm');
   </script>
  <a href="mailto:jayrolldbarreto@gmail.com" class="dev-contact" title="Report a system problem">
-    🛠️ Dev Contact
+    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M14.7 6.3a4.5 4.5 0 0 0-6 6L3 18l3 3 5.7-5.7a4.5 4.5 0 0 0 6-6L14 13l-3-3 3.7-3.7Z"/></svg> Dev Contact
 </a>
 </a>
 </body>

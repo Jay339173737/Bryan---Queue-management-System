@@ -5,7 +5,7 @@
   --sky:#0ea5e9;
   --ink:#0f172a; --slate:#475569; --muted:#94a3b8;
   --border:#e2e8f0; --bg:#f5f8fe; --card:#ffffff;
-  --green:#2563eb; --amber:#f59e0b; --red:#ef4444;
+  --green:#10b981; --amber:#f59e0b; --red:#ef4444;
   --radius:16px;
   --shadow:0 1px 2px rgba(15,23,42,.04),0 8px 24px rgba(15,23,42,.06);
   --shadow-lg:0 12px 40px rgba(37,99,235,.16);
@@ -90,7 +90,7 @@ a:hover{color:var(--blue-700)}
 
 /* ---------- Flash messages ---------- */
 .flash{padding:12px 16px;margin:14px 0;border-radius:12px;font-size:14px;font-weight:500;border:1px solid}
-.flash.success{background:#eff6ff;color:#1e40af;border-color:#bfdbfe}
+.flash.success{background:#ecfdf5;color:#047857;border-color:#a7f3d0}
 .flash.warning,.flash.info{background:#fffbeb;color:#b45309;border-color:#fde68a}
 .flash.danger{background:#fef2f2;color:#b91c1c;border-color:#fecaca}
 
@@ -122,7 +122,7 @@ h2{font-size:18px;font-weight:700;margin:26px 0 12px}
 .status-waiting{background:#f1f5f9;color:var(--slate)}
 .status-serving{background:var(--blue-600);color:#fff}
 .status-no_show{background:#fef2f2;color:#b91c1c}
-.status-done{background:#eff6ff;color:#1e40af}
+.status-done{background:#ecfdf5;color:#047857}
 
 /* ---------- Active ticket card ---------- */
 .info-card p{margin-bottom:4px}
@@ -238,33 +238,3 @@ h2{font-size:18px;font-weight:700;margin:26px 0 12px}
 .pstep.active{color:var(--blue-700);font-weight:700}
 .pstep.active .dot{background:var(--blue-600);box-shadow:0 0 0 4px rgba(37,99,235,.18);animation:pulse 1.2s infinite}
 @keyframes pulse{50%{box-shadow:0 0 0 8px rgba(37,99,235,.06)}}
-
-
-/* ---------- Icon system (replaces emojis) ---------- */
-.ic{width:1.15em;height:1.15em;vertical-align:-0.2em;margin-right:6px;transition:transform .2s ease}
-.ic-lg{width:24px;height:24px}
-.help-fab .ic-lg,.dev-contact .ic-lg{transition:transform .25s ease}
-.help-fab:hover{transform:translateY(-2px)}
-.help-fab:hover .ic-lg{transform:rotate(-8deg) scale(1.1)}
-.dev-contact{
-  width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(135deg,var(--blue-600),var(--sky));color:#fff;
-  box-shadow:0 8px 20px rgba(37,99,235,.35);transition:transform .2s,box-shadow .2s;
-}
-.dev-contact:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(37,99,235,.45)}
-.dev-contact:hover .ic-lg{transform:scale(1.08)}
-.dev-contact:active{transform:scale(.94)}
-
-/* ---------- Phone polish ---------- */
-button,.btn,a,label{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-:focus-visible{outline:3px solid rgba(37,99,235,.45);outline-offset:2px;border-radius:8px}
-.help-fab{right:20px;bottom:calc(20px + env(safe-area-inset-bottom))}
-.dev-contact{left:20px;bottom:calc(20px + env(safe-area-inset-bottom))}
-@media(max-width:480px){
-  .main{padding:28px 14px 110px}
-  .queue-container{max-height:55vh}
-  #queue-table td{padding:10px 12px}
-  .info-card{padding:18px}
-  #toast-container{left:14px;right:14px;top:14px}
-  #toast-container>div{max-width:none}
-}

@@ -43,7 +43,7 @@ body{
 }
 .login-btn:hover{transform:translateY(-1px);box-shadow:0 12px 26px rgba(37,99,235,.36)}
 .flash{margin:0 0 16px;padding:.8rem 1rem;border-radius:10px;font-size:14px;font-weight:500;border:1px solid}
-.flash.success{background:#eff6ff;color:#1e40af;border-color:#bfdbfe}
+.flash.success{background:#ecfdf5;color:#047857;border-color:#a7f3d0}
 .flash.danger{background:#fef2f2;color:#b91c1c;border-color:#fecaca}
 .flash.info,.flash.warning{background:var(--blue-50);color:#1e40af;border-color:var(--blue-100)}
 @media(max-width:760px){

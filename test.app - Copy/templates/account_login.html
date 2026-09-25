@@ -18,7 +18,7 @@
             {% with messages = get_flashed_messages(with_categories=true) %}
               {% if messages %}
                 {% for category, msg in messages %}
-                  <div class="flash {{ category }}">{{ msg }}</div>
+                  <div class="flash {{ category }}">{{ msg | replace('✅','') | replace('✔️','') | replace('✔','') | replace('✓','') | replace('❌','') | replace('❎','') | replace('⚠️','') | replace('⚠','') | replace('🎉','') | replace('🎊','') | replace('🎟️','') | replace('🎟','') | replace('⏰','') | replace('🔔','') | replace('📞','') | replace('👋','') | replace('💳','') | replace('💵','') | replace('🟢','') | replace('🛠️','') | replace('🛠','') | replace('☕','') | replace('⏳','') | replace('🚪','') | replace('👤','') | replace('🚶','') | replace('💼','') | replace('📄','') | replace('💬','') | trim }}</div>
                 {% endfor %}
               {% endif %}
             {% endwith %}

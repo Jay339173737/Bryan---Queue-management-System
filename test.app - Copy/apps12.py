@@ -19,7 +19,7 @@ import hashlib
 import uuid
 from payments import create_checkout_session, verify_webhook, PAYMONGO_ENABLED, SERVICE_FEE_CENTAVOS
 
-print(f"💳 PAYMONGO_ENABLED = {PAYMONGO_ENABLED}")
+print(f"PAYMONGO_ENABLED = {PAYMONGO_ENABLED}")
 from services import (fetch_waiting_queue, fetch_active_service, count_todays_tickets,
                       check_ticket_limit, verify_duplicate_ticket, retrieve_or_create_customer,
                       push_queue_update, retrieve_config_value, update_config_value,
@@ -34,7 +34,7 @@ app = Flask(__name__)
 _env_secret = os.environ.get("SECRET_KEY")
 if not _env_secret:
     _env_secret = secrets.token_hex(32)
-    print("⚠️  SECRET_KEY not set in environment - using a random one for "
+    print("SECRET_KEY not set in environment - using a random one for "
           "this process only. Set SECRET_KEY before deploying, or every "
           "restart will log everyone out.")
 app.config['SECRET_KEY'] = _env_secret
@@ -62,7 +62,7 @@ with app.app_context():
         _default_admin.set_password(os.environ.get("ADMIN_DEFAULT_PASSWORD", "admin123"))
         db.session.add(_default_admin)
         db.session.commit()
-        print("✅ Default admin created on startup - CHANGE THIS PASSWORD "
+        print("Default admin created on startup - CHANGE THIS PASSWORD "
               "before deploying (set ADMIN_DEFAULT_PASSWORD or create a "
               "new admin with 'flask create_admin').")
     # Check if config exists
@@ -110,13 +110,13 @@ def handle_customer_join(data):
 
     The room id MUST come from the server-side session, never from the
     client payload - otherwise anyone can pass another customer's id and
-    silently receive their "your turn" / recall notifications.
+    silently receive their "your turn"/ recall notifications.
     """
     customer_id = session.get("user_id")
     if customer_id is not None:
         notification_room = str(customer_id)
         join_room(notification_room)
-        print(f"✅ Customer ID {notification_room} connected to notification system")
+        print(f"Customer ID {notification_room} connected to notification system")
 
 
 # ========================================
@@ -204,11 +204,11 @@ def process_ticket_request():
             for doc_name in docs:
                 price = price_for_document(doc_name)
                 if price is None:
-                    flash(f"'{doc_name}' is not a recognized document.", "danger")
+                    flash(f"'{doc_name}'is not a recognized document.", "danger")
                     return redirect(url_for("landing_page"))
                 amount_due += price
 
-            visit_purpose = "Documents - " + ", ".join(docs)
+            visit_purpose = "Documents - "+ ", ".join(docs)
 
         elif visit_purpose in ("Other", "Other documents"):
             visit_purpose = request.form.get("reason_other", "").strip()
@@ -231,13 +231,13 @@ def process_ticket_request():
                 return redirect(url_for("landing_page"))
             if amount_due <= 0:
                 # Nothing to actually charge (Consultation / Other / etc. have
-                # no price attached) — "online payment" doesn't apply here, so
+                # no price attached) — "online payment"doesn't apply here, so
                 # treat it the same as a free walk-in ticket instead of
                 # silently marking it "paid" for a payment that never happened.
                 payment_method = "cash"
                 payment_status = "paid"
             else:
-                # Do NOT mark this "paid" yet. It only becomes "paid" once
+                # Do NOT mark this "paid"yet. It only becomes "paid"once
                 # PayMongo's webhook confirms the charge — see the checkout
                 # branch below and /paymongo/webhook.
                 payment_status = "pending"
@@ -254,7 +254,7 @@ def process_ticket_request():
 
         # ---------- daily ticket limit ----------
         if check_ticket_limit():
-            session["ticket_message"] = "⚠️  Today's ticket quota has been reached. Please return tomorrow."
+            session["ticket_message"] = "Today's ticket quota has been reached. Please return tomorrow."
             return redirect(url_for("customer_portal"))
 
        
@@ -281,8 +281,8 @@ def process_ticket_request():
             recover_url = url_for('recover_ticket')
             
       
-            msg = Markup(f"❌ You already have an active ticket (#{existing_ticket.id}). "
-                         f"<a href='{recover_url}' style='color: inherit; text-decoration: underline; font-weight: bold;'>Click here to recover it.</a>")
+            msg = Markup(f"You already have an active ticket (#{existing_ticket.id}). "
+                         f"<a href='{recover_url}'style='color: inherit; text-decoration: underline; font-weight: bold;'>Click here to recover it.</a>")
             
             flash(msg, "warning")
             return redirect(url_for("landing_page"))
@@ -333,9 +333,9 @@ def process_ticket_request():
                 
                 # --- NEW: Auto-Generate Guest ID ---
                 # Format: #8barreto
-                if customer_type == 'guest' and family_name:
-                    # Create ID: '#' + TicketID + LastName (lowercase, no spaces)
-                    clean_lastname = family_name.lower().replace(" ", "")
+                if customer_type == 'guest'and family_name:
+                    # Create ID: '#'+ TicketID + LastName (lowercase, no spaces)
+                    clean_lastname = family_name.lower().replace("", "")
                     generated_id = f"#{new_ticket.id}{clean_lastname}"
                     
                     # Update the customer record
@@ -343,11 +343,11 @@ def process_ticket_request():
                     db.session.commit()
                     
                     # Show special message with the ID
-                    session["ticket_message"] = (f"✅ Ticket #{new_ticket.id} issued! "
+                    session["ticket_message"] = (f"Ticket #{new_ticket.id} issued! "
                                                  f"Your Guest Recovery ID is: {generated_id}")
                 else:
                     # Standard message for Students
-                    session["ticket_message"] = f"✅ Ticket #{new_ticket.id} has been issued successfully!"
+                    session["ticket_message"] = f"Ticket #{new_ticket.id} has been issued successfully!"
 
             except IntegrityError:
                 db.session.rollback()
@@ -365,7 +365,7 @@ def process_ticket_request():
     
     except Exception as error:
         db.session.rollback()
-        print(f"❌  Ticket request failed: {error}")
+        print(f"Ticket request failed: {error}")
         import traceback
         traceback.print_exc()
         session["ticket_message"] = "System error occurred. Please try again."
@@ -408,7 +408,7 @@ def recover_ticket():
         if latest_ticket:
             # 1. Restore Session
             session["user_id"] = latest_ticket.customer_ref_id
-            session["ticket_message"] = f"✅ Ticket #{latest_ticket.id} recovered successfully!"
+            session["ticket_message"] = f"Ticket #{latest_ticket.id} recovered successfully!"
             
             # 2. Create Response & Restore Browser Lock (Critical Step)
             resp = make_response(redirect(url_for("customer_portal")))
@@ -574,10 +574,10 @@ def advance_to_next_customer():
                 db.session.commit()
 
                 # Notify the person leaving
-                socketio.emit("force_logout", {"message": "✅ Your service is complete. Thank you!"}, room=str(current_service.customer_ref_id))
+                socketio.emit("force_logout", {"message": "Your service is complete. Thank you!"}, room=str(current_service.customer_ref_id))
                 socketio.emit("announcement", {"message": f"Served: #{current_service.id} — Service Paused."})
                 
-                flash(f"✅ Finished #{current_service.id}. Queue is PAUSED.", "warning")
+                flash(f"Finished #{current_service.id}. Queue is PAUSED.", "warning")
             else:
                 flash("Queue is paused and nobody is currently serving.", "info")
             
@@ -597,27 +597,27 @@ def advance_to_next_customer():
             db.session.commit()
             
             # Notifications...
-            socketio.emit("force_logout", {"message": "✅ Service complete."}, room=str(current_service.customer_ref_id))
-            socketio.emit("ticket_status", {"message": f"🎯 Ticket #{next_waiting.id} — It's your turn!"}, room=str(next_waiting.customer_ref_id))
+            socketio.emit("force_logout", {"message": "Service complete."}, room=str(current_service.customer_ref_id))
+            socketio.emit("ticket_status", {"message": f"Ticket #{next_waiting.id} — It's your turn!"}, room=str(next_waiting.customer_ref_id))
             socketio.emit("announcement", {"message": f"Now serving: #{next_waiting.id} — {next_waiting.customer_ref.fullname}"})
             
-            flash(f"✅ Served #{current_service.id} → Now serving #{next_waiting.id}.", "success")
+            flash(f"Served #{current_service.id} → Now serving #{next_waiting.id}.", "success")
 
         elif current_service and not next_waiting:
             # Finish current, no one else waiting
             current_service.ticket_status = 'served'
             current_service.completion_time = datetime.utcnow()
             db.session.commit()
-            socketio.emit("force_logout", {"message": "✅ Service complete."}, room=str(current_service.customer_ref_id))
-            flash(f"✅ Ticket #{current_service.id} served. Queue empty.", "info")
+            socketio.emit("force_logout", {"message": "Service complete."}, room=str(current_service.customer_ref_id))
+            flash(f"Ticket #{current_service.id} served. Queue empty.", "info")
 
         elif not current_service and next_waiting:
             # Nobody was serving, start the first person
             next_waiting.ticket_status = 'serving'
             db.session.commit()
-            socketio.emit("ticket_status", {"message": f"🎯 Ticket #{next_waiting.id} — It's your turn!"}, room=str(next_waiting.customer_ref_id))
+            socketio.emit("ticket_status", {"message": f"Ticket #{next_waiting.id} — It's your turn!"}, room=str(next_waiting.customer_ref_id))
             socketio.emit("announcement", {"message": f"Now serving: #{next_waiting.id}"})
-            flash(f"🎟️ Now serving: Ticket #{next_waiting.id}", "success")
+            flash(f"Now serving: Ticket #{next_waiting.id}", "success")
 
         resp = make_response(redirect(url_for("admin_control_panel")))
         _clear_lock(resp)
@@ -626,7 +626,7 @@ def advance_to_next_customer():
 
     except Exception as error:
         db.session.rollback()
-        print(f"❌ Error: {error}")
+        print(f"Error: {error}")
         flash("Error occurred while advancing queue.", "danger")
         return redirect(url_for("admin_control_panel"))
     
@@ -640,7 +640,7 @@ def mark_customer_absent():
 
         if not target_ticket:
             # If nobody is being served, stop immediately.
-            flash("⚠️ You must START SERVING a ticket before marking them as No-Show.", "warning")
+            flash("You must START SERVING a ticket before marking them as No-Show.", "warning")
             return redirect(url_for("admin_control_panel"))
 
         # Proceed to mark as no-show
@@ -652,12 +652,12 @@ def mark_customer_absent():
         # Notify customer
         socketio.emit(
             "force_logout",
-            {"message": "⚠️ You have been marked absent. Please contact office if needed."},
+            {"message": "You have been marked absent. Please contact office if needed."},
             room=str(target_ticket.customer_ref_id)
         )
         
         # Notify Admin & Screen
-        flash(f"⚠️ Ticket #{ticket_id} marked as No-Show.", "warning")
+        flash(f"Ticket #{ticket_id} marked as No-Show.", "warning")
         socketio.emit("announcement", {"message": f"Ticket #{ticket_id} marked as No-Show."})
         
         push_queue_update(socketio)
@@ -668,7 +668,7 @@ def mark_customer_absent():
 
     except Exception as error:
         db.session.rollback()
-        print(f"❌ No-show marking failed: {error}")
+        print(f"No-show marking failed: {error}")
         flash("Error occurred while marking no-show.", "danger")
         return redirect(url_for("admin_control_panel"))
     
@@ -682,7 +682,7 @@ def recall_current_customer():
 
         if current_service:
             if current_service.recall_count >= 3:
-                flash(f"⚠️ Max recall limit reached (3/3) for Ticket #{current_service.id}.", "warning")
+                flash(f"Max recall limit reached (3/3) for Ticket #{current_service.id}.", "warning")
                 return redirect(url_for("admin_control_panel"))
 
           
@@ -691,19 +691,19 @@ def recall_current_customer():
 
             socketio.emit(
                 "ticket_status",
-                {"message": f"📢 RECALL ({current_service.recall_count}/3): Ticket #{current_service.id}, please proceed to the counter!"},
+                {"message": f"RECALL ({current_service.recall_count}/3): Ticket #{current_service.id}, please proceed to the counter!"},
                 room=str(current_service.customer_ref_id)
             )
 
             socketio.emit(
                 "announcement",
-                {"message": f"📢 Calling again: Ticket #{current_service.id} — {current_service.customer_ref.fullname}"}
+                {"message": f"Calling again: Ticket #{current_service.id} — {current_service.customer_ref.fullname}"}
             )
             
             
             push_queue_update(socketio)
 
-            flash(f"📢 Recalled Ticket #{current_service.id} ({current_service.recall_count}/3).", "info")
+            flash(f"Recalled Ticket #{current_service.id} ({current_service.recall_count}/3).", "info")
         else:
             flash("No active ticket to recall.", "warning")
 
@@ -720,7 +720,7 @@ def recall_current_customer():
 def toggle_queue_flow():
     try:
         current_status = retrieve_config_value('queue_flow_status', 'active')
-        new_status = 'paused' if current_status == 'active' else 'active'
+        new_status = 'paused'if current_status == 'active'else 'active'
         update_config_value('queue_flow_status', new_status)
     
         socketio.emit('flow_status_update', {'status': new_status})
@@ -745,7 +745,7 @@ def announce_resume():
         else:
             update_config_value('resume_time_display', resume_time)
             socketio.emit('break_announcement', {'active': True, 'time': resume_time})
-            flash(f"📢 Banner Posted: Resuming at {resume_time}", "success")
+            flash(f"Banner Posted: Resuming at {resume_time}", "success")
 
         return redirect(url_for("admin_control_panel"))
 
@@ -759,7 +759,7 @@ def ack_ticket_notification():
     """Records a customer acknowledging their call/recall notification and notifies admin."""
     customer_id = session.get("user_id")
     ticket_id = request.form.get("ticket_id", type=int)
-    info = request.form.get("info") # 'INITIAL_CALL_ACK' or 'RECALL_ACK'
+    info = request.form.get("info") # 'INITIAL_CALL_ACK'or 'RECALL_ACK'
 
     if customer_id and ticket_id:
         try:
@@ -938,7 +938,7 @@ def pay_advance():
         for doc_name in selected_documents:
             price = price_for_document(doc_name)
             if price is None:
-                flash(f"'{doc_name}' is not a recognized document.", "danger")
+                flash(f"'{doc_name}'is not a recognized document.", "danger")
                 return redirect(url_for("pay_advance"))
             priced_documents.append((doc_name, price))
 
@@ -959,11 +959,11 @@ def pay_advance():
                     cancel_url=url_for("pay_advance", _external=True),
                 )
             except RuntimeError as e:
-                print(f"❌ PayMongo checkout failed: {e}")
+                print(f"PayMongo checkout failed: {e}")
                 flash("Payment gateway is unavailable. Please try again.", "danger")
                 return redirect(url_for("pay_advance"))
 
-        # Create records as PENDING — flipped to "paid" only by the webhook
+        # Create records as PENDING — flipped to "paid"only by the webhook
         for doc_name, price in priced_documents:
             db.session.add(AdvancePayment(
                 customer_id=session["user_id"],
@@ -1012,7 +1012,7 @@ def activate_payment(batch_id):
         flash("Payment batch not found or already used.", "danger")
         return redirect(url_for("account_dashboard"))
 
-    # Now that pay_advance can leave a batch "pending" until PayMongo's
+    # Now that pay_advance can leave a batch "pending"until PayMongo's
     # webhook confirms it, activation must check that too - otherwise a
     # student can hit this route directly for an unpaid batch and get
     # the service for free.
@@ -1038,7 +1038,7 @@ def activate_payment(batch_id):
     db.session.add(new_ticket)
     db.session.commit()
 
-    session["ticket_message"] = f"✅ Ticket #{new_ticket.id} issued for: {combined_reason}"
+    session["ticket_message"] = f"Ticket #{new_ticket.id} issued for: {combined_reason}"
     session["user_id"] = customer.id
     resp = make_response(redirect(url_for("customer_portal")))
     _set_lock(resp, new_ticket.id)
@@ -1099,7 +1099,7 @@ def paymongo_webhook():
                 row.payment_status = "paid"
             if rows:
                 db.session.commit()
-                print(f"✅ PayMongo paid: batch {ref} ({len(rows)} row(s))")
+                print(f"PayMongo paid: batch {ref} ({len(rows)} row(s))")
     return {"received": True}, 200
 
 
@@ -1135,7 +1135,7 @@ def payment_status(batch_id):
 
 
 def _finish_paid_flow(row, kind):
-    """Called once payment is confirmed. Issues the ticket for 'ticket' flow."""
+    """Called once payment is confirmed. Issues the ticket for 'ticket'flow."""
     if kind == "ticket":
         existing = QueueTicket.query.filter(
             QueueTicket.customer_ref_id == row.customer_id,
@@ -1151,12 +1151,12 @@ def _finish_paid_flow(row, kind):
             db.session.add(new_ticket)
             db.session.commit()
             session["user_id"] = row.customer_id
-            session["ticket_message"] = f"✅ Payment confirmed! Ticket #{new_ticket.id} issued."
+            session["ticket_message"] = f"Payment confirmed! Ticket #{new_ticket.id} issued."
             resp = make_response(redirect(url_for("customer_portal")))
             _set_lock(resp, new_ticket.id)
             push_queue_update(socketio)
             return resp
-        session["ticket_message"] = f"⚠️ You already have an active ticket (#{existing.id})."
+        session["ticket_message"] = f"You already have an active ticket (#{existing.id})."
         return redirect(url_for("customer_portal"))
 
     # advance flow → back to dashboard with the paid batch ready to activate
@@ -1187,5 +1187,5 @@ if __name__ == "__main__":
     except:
         pass
         
-    print(" Server Starting...")
+    print("Server Starting...")
     socketio.run(app, debug=True, host='0.0.0.0', port=5001)
