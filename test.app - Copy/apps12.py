@@ -11,6 +11,7 @@ from cli import register_cli_commands
 import socket
 import secrets
 from markupsafe import Markup
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from error_handlers import register_error_handlers
 from itsdangerous import URLSafeSerializer, BadSignature
@@ -335,7 +336,7 @@ def process_ticket_request():
                 # Format: #8barreto
                 if customer_type == 'guest'and family_name:
                     # Create ID: '#'+ TicketID + LastName (lowercase, no spaces)
-                    clean_lastname = family_name.lower().replace("", "")
+                    clean_lastname = family_name.lower().replace(" ", "")
                     generated_id = f"#{new_ticket.id}{clean_lastname}"
                     
                     # Update the customer record
@@ -393,16 +394,16 @@ def recover_ticket():
         # If Student ID is provided, match ID + Names
         if student_id:
              latest_ticket = query.filter(
-                 QueueCustomer.student_number == student_id,
-                 QueueCustomer.firstname.ilike(given_name),
-                 QueueCustomer.lastname.ilike(family_name)
+                 func.lower(QueueCustomer.student_number) == student_id.lower(),
+                 func.lower(QueueCustomer.firstname) == given_name.lower(),
+                 func.lower(QueueCustomer.lastname) == family_name.lower()
              ).first()
         # If NO Student ID (Guest), match Names only
         else:
              latest_ticket = query.filter(
                  QueueCustomer.student_number.is_(None), # Ensure it's a guest/no-id account
-                 QueueCustomer.firstname.ilike(given_name),
-                 QueueCustomer.lastname.ilike(family_name)
+                 func.lower(QueueCustomer.firstname) == given_name.lower(),
+                 func.lower(QueueCustomer.lastname) == family_name.lower()
              ).first()
 
         if latest_ticket:

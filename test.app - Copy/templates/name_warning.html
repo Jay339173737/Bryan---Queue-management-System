@@ -1,47 +1,89 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NWSSU TapIn - Duplicate Warning</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/name_warning.css') }}">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QFlow — Duplicate Ticket Warning</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        :root{
+            --blue-700:#1d4ed8; --blue-600:#2563eb; --ink:#0f172a; --slate:#475569; --border:#e2e8f0;
+            --amber-50:#fffbeb; --amber-200:#fde68a; --amber-600:#d97706;
+        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{
+            font-family:'Inter',system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;
+            background:radial-gradient(1000px 600px at 80% -10%,rgba(37,99,235,.12),transparent 60%),#f5f8fe;color:var(--ink);
+            padding:20px;text-align:center;
+        }
+        .card{
+            background:#fff;border:1px solid var(--border);border-radius:24px;padding:48px 40px;
+            max-width:440px;width:100%;box-shadow:0 24px 60px rgba(15,23,42,.10);
+        }
+        .brand-mark{
+            width:60px;height:60px;border-radius:18px;margin:0 auto 22px;
+            background:linear-gradient(150deg,var(--blue-700),var(--blue-600) 55%,#0ea5e9);
+            color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;
+        }
+        h1{font-size:20px;font-weight:800;margin-bottom:16px;}
+        .alert{
+            display:flex;gap:12px;align-items:flex-start;text-align:left;
+            background:var(--amber-50);border:1px solid var(--amber-200);border-radius:14px;
+            padding:14px 16px;margin-bottom:20px;
+        }
+        .alert svg{flex-shrink:0;color:var(--amber-600);margin-top:1px;}
+        .alert p{color:var(--slate);font-size:14px;line-height:1.6;}
+        .alert strong{color:var(--ink);font-weight:700;}
+        .question{color:var(--slate);font-size:14.5px;line-height:1.6;margin-bottom:26px;}
+        .button-group{display:flex;gap:12px;}
+        .button-group form{flex:1;display:flex;}
+        .btn{
+            flex:1;display:block;width:100%;padding:13px 20px;border-radius:12px;font-family:inherit;
+            font-weight:700;font-size:14.5px;text-decoration:none;text-align:center;cursor:pointer;
+            border:1px solid transparent;transition:background .15s, border-color .15s;
+        }
+        .btn-primary{background:var(--blue-600);color:#fff;}
+        .btn-primary:hover{background:var(--blue-700);}
+        .btn-secondary{flex:1;background:#fff;color:var(--slate);border-color:var(--border);}
+        .btn-secondary:hover{background:#f1f5f9;}
+        @media (max-width:420px){
+            .card{padding:36px 24px;}
+            .button-group{flex-direction:column;}
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <div class="warning-card">
-      <div class="warning-icon"><svg width="44" height="44" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 3 2 20h20L12 3Zm0 6v5m0 3v.5"/></svg></div>
-      <h1>Duplicate Ticket Warning</h1>
-      
-      <p class="warning-message">
-        A <strong>{{ user_type|capitalize }}</strong> with the name 
-        <strong class="highlight">{{ first }} {{ last }}</strong>
-        {% if sid %} (ID: <strong>{{ sid }}</strong>){% endif %}
-        already has an active ticket.
-      </p>
+    <div class="card">
+        <div class="brand-mark">Q</div>
+        <h1>Duplicate Ticket Warning</h1>
 
-      <p class="question">Would you like to continue and request another one?</p>
+        <div class="alert">
+            <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 3 2 20h20L12 3Zm0 6v5m0 3v.5"/></svg>
+            <p>
+                A <strong>{{ user_type|capitalize }}</strong> with the name
+                <strong>{{ first }} {{ last }}</strong>
+                {% if sid %}(ID: <strong>{{ sid }}</strong>){% endif %}
+                already has an active ticket.
+            </p>
+        </div>
 
-      <div class="button-group">
-        <!-- Continue Button -->
-        <form method="POST" action="{{ url_for('process_ticket_request') }}">
-          <input type="hidden" name="user_type" value="{{ user_type }}">
-          <input type="hidden" name="first_name" value="{{ first }}">
-          <input type="hidden" name="last_name" value="{{ last }}">
-          {% if sid %}
-          <input type="hidden" name="student_id" value="{{ sid }}">
-          {% endif %}
-          <input type="hidden" name="reason" value="{{ reason }}">
-          <input type="hidden" name="force" value="true">
-          <button type="submit" class="btn btn-primary">Yes, Continue</button>
-        </form>
+        <p class="question">Would you like to continue and request another one?</p>
 
-        <!-- Cancel Button -->
-        <a href="{{ url_for('landing_page') }}" class="btn btn-secondary">No, Cancel</a>
-      </div>
+        <div class="button-group">
+            <a href="{{ url_for('landing_page') }}" class="btn btn-secondary">No, Cancel</a>
+
+            <form method="POST" action="{{ url_for('process_ticket_request') }}">
+                <input type="hidden" name="user_type" value="{{ user_type }}">
+                <input type="hidden" name="first_name" value="{{ first }}">
+                <input type="hidden" name="last_name" value="{{ last }}">
+                {% if sid %}
+                <input type="hidden" name="student_id" value="{{ sid }}">
+                {% endif %}
+                <input type="hidden" name="reason" value="{{ reason }}">
+                <input type="hidden" name="force" value="true">
+                <button type="submit" class="btn btn-primary">Yes, Continue</button>
+            </form>
+        </div>
     </div>
-  </div>
 </body>
 </html>
