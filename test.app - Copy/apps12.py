@@ -230,7 +230,7 @@ def process_ticket_request():
                 flash(msg, "warning")
                 return redirect(url_for("landing_page"))
             if amount_due <= 0:
-                # Nothing to actually charge (Consultation / Other / etc. have
+                # Nothing to actually charge (Enrollment / Other / etc. have
                 # no price attached) — "online payment"doesn't apply here, so
                 # treat it the same as a free walk-in ticket instead of
                 # silently marking it "paid" for a payment that never happened.
