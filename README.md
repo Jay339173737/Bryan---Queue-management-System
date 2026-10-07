@@ -14,11 +14,11 @@ Features
 Tech Stack
 | Part | Tool | Why |
 |---|---|---|
-| Backend | Python, Flask | [your reason] |
-| Database | SQLite + SQLAlchemy | [your reason] |
+| Backend | Python, Flask |
+| Database | SQLite + SQLAlchemy | 
 | Real-time | Flask-SocketIO | live queue updates without refreshing |
 | Payments | PayMongo API (sandbox) | supports GCash/Maya |
-| Frontend | HTML, CSS, Jinja templates | [your reason] |
+| Frontend | HTML, CSS, Jinja templates | 
 
 ## Security
 | Layer | Method | Where |
