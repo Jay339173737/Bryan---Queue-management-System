@@ -1,4 +1,4 @@
-# [QFlow / RISE QMS] – Queue Management System
+# [QFlow] – Queue Management System
 
 A web-based queue system for the registrar/document-processing office. Members request documents, get a queue ticket on their own phone, and are notified in real time when they are called.
 
@@ -53,9 +53,4 @@ Open `http://localhost:5001`. Create more admins with `flask create_admin`.
 - `templates/`, `static/` – frontend
 
 ## Known Limitations
-- Student numbers are stored unencrypted because they are used for login lookups
 - PayMongo runs in sandbox/test mode
-- [anything else you want to be upfront about]
-
-## Team
-[Names]
