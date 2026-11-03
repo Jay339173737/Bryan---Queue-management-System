@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QFlow — Get Your Ticket</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/student.css') }}">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-coffee" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8Zm4 7v2m4-2v2m4-2v2M6 2c0 1 .5 1.5.5 2.5S6 6 6 6m4-4c0 1 .5 1.5.5 2.5S10 6 10 6m4-4c0 1 .5 1.5.5 2.5S14 6 14 6"/></symbol>
+    <symbol id="i-door" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M13 4h6a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-6M10 17l5-5-5-5m5 5H3"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2m11-13a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z"/></symbol>
+    <symbol id="i-walk" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M13 5a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm-2 19 2-5 3 2v5m-5-13-2 5-4 1m9-4 3 2 2 4"/></symbol>
+    <symbol id="i-briefcase" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-9 0h10a4 4 0 0 1 4 4v6a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-6a4 4 0 0 1 4-4Zm-4 6h18"/></symbol>
+    <symbol id="i-card" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Zm0 4h18M7 15h4"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 0v6h6M9 13h6M9 17h6"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5Z"/></symbol>
+    <symbol id="i-cash" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M2 7h20v10H2V7Zm10 7a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/></symbol>
+    <symbol id="i-pencil" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" d="M18 6 6 18M6 6l12 12"/></symbol>
+  </defs>
+</svg>
+
+  <div class="team-watermark">Powered by QFlow</div>
+
+  {% if resume_time %}
+    <div id="break-banner" style="display:block;">
+      <svg class="ic"><use href="#i-coffee"/></svg> We're on a short break. Resuming at <span id="banner-time" class="break-time">{{ resume_time }}</span>
+    </div>
+  {% else %}
+    <div id="break-banner" style="display:none;">
+      <svg class="ic"><use href="#i-coffee"/></svg> We're on a short break. Resuming at <span id="banner-time" class="break-time"></span>
+    </div>
+  {% endif %}
+
+  <!-- Guide Modal -->
+  <div id="guideModal" class="guide-overlay" onclick="closeGuide(event)">
+    <div class="guide-card">
+      <button class="close-guide" onclick="closeGuide(event)">×</button>
+      <h3>How It Works</h3>
+      <div class="guide-step">
+        <div class="step-number">1</div>
+        <div class="step-text"><h4>Tell Us Who You Are</h4><p>Choose <strong>Member</strong> (with an account ID) or <strong>Visitor</strong>.</p></div>
+      </div>
+      <div class="guide-step">
+        <div class="step-number">2</div>
+        <div class="step-text"><h4>Select a Service</h4><p>Enter your name and pick what you need help with.</p></div>
+      </div>
+      <div class="guide-step">
+        <div class="step-number">3</div>
+        <div class="step-text"><h4>Get Your Ticket</h4><p>Tap "Get My Ticket" and watch the screen for your number.</p></div>
+      </div>
+    </div>
+  </div>
+  <button class="help-fab" onclick="openGuide()" title="How to use">?</button>
+
+  <div class="main">
+    <div class="header-container">
+      <div class="brand-mark">Q</div>
+      <h1>QFlow</h1>
+      <div class="business-name">Smart Queue Management</div>
+    </div>
+    <p style="text-align:center;color:var(--muted);margin-bottom:6px;font-size:14px;">Get your ticket and wait comfortably</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message | replace('✅','') | replace('✔️','') | replace('✔','') | replace('✓','') | replace('❌','') | replace('❎','') | replace('⚠️','') | replace('⚠','') | replace('🎉','') | replace('🎊','') | replace('🎟️','') | replace('🎟','') | replace('⏰','') | replace('🔔','') | replace('📞','') | replace('👋','') | replace('💳','') | replace('💵','') | replace('🟢','') | replace('🛠️','') | replace('🛠','') | replace('☕','') | replace('⏳','') | replace('🚪','') | replace('👤','') | replace('🚶','') | replace('💼','') | replace('📄','') | replace('💬','') | trim | safe }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('process_ticket_request') }}">
+      <h3>Get Your Ticket</h3>
+
+      {% if session.get('authenticated') %}
+        <p id="nameDisplay">
+          Requesting as: <strong id="nameText">{{ session_customer_name }}</strong> ({{ session_customer_id }})
+          <a href="#" id="editPenBtn" title="Edit name" aria-label="Edit name"><svg class="ic"><use href="#i-pencil"/></svg></a>
+          <a href="{{ url_for('account_logout') }}" title="Not you? Log out"><svg class="ic"><use href="#i-door"/></svg> Not you? Log out</a>
+        </p>
+        <p style="font-size:12.5px;color:var(--muted,#94a3b8);margin:-8px 0 14px;">
+          <a href="{{ url_for('account_dashboard') }}" style="color:inherit;text-decoration:underline;">My Paid Documents</a>
+          &nbsp;·&nbsp;
+          <a href="{{ url_for('pay_advance') }}" style="color:inherit;text-decoration:underline;">Pay in Advance</a>
+        </p>
+        <p id="nameEditRow" style="display:none;">
+          <input type="text" id="editFirstName" value="{{ session_customer_firstname }}" style="width:45%;display:inline-block;">
+          <input type="text" id="editLastName" value="{{ session_customer_lastname }}" style="width:45%;display:inline-block;">
+          <a href="#" id="saveNameBtn" aria-label="Save name"><svg class="ic"><use href="#i-check"/></svg></a>
+          <a href="#" id="cancelNameBtn" aria-label="Cancel"><svg class="ic"><use href="#i-x"/></svg></a>
+        </p>
+      {% else %}
+        <div class="radio-group">
+          <label>
+            <input type="radio" name="user_type" value="student" required>
+            <span><svg class="ic"><use href="#i-user"/></svg> Member</span>
+          </label>
+          <label>
+            <input type="radio" name="user_type" value="guest" required>
+            <span><svg class="ic"><use href="#i-walk"/></svg> Visitor</span>
+          </label>
+        </div>
+
+        <p style="font-size:13px;color:var(--muted,#94a3b8);margin:-8px 0 14px;">
+          Have an account? <a href="{{ url_for('account_login') }}" style="color:var(--blue-600,#2563eb);font-weight:600;text-decoration:underline;">Log in</a>
+          &nbsp;·&nbsp;
+          New here? <a href="{{ url_for('account_signup') }}" style="color:var(--blue-600,#2563eb);font-weight:600;text-decoration:underline;">Sign up</a>
+        </p>
+
+        <div id="studentFields" style="display:none;">
+          <input type="text" name="first_name" placeholder="First Name" disabled>
+          <input type="text" name="last_name" placeholder="Last Name" disabled>
+          <input type="text" name="student_id" placeholder="Account / Member ID" disabled>
+        </div>
+
+        <div id="guestFields" style="display:none;">
+          <input type="text" name="first_name" placeholder="First Name" disabled>
+          <input type="text" name="last_name" placeholder="Last Name" disabled>
+        </div>
+      {% endif %}
+
+      <label class="request-type-label">What do you need?</label>
+      <div class="request-options">
+        <label>
+          <input type="radio" name="reason" value="Consultation" required>
+          <span><svg class="ic"><use href="#i-briefcase"/></svg> Enrollment</span>
+        </label>
+        <label>
+          <input type="radio" name="reason" value="Payment / Transaction" required>
+          <span><svg class="ic"><use href="#i-card"/></svg> Payment / Transaction</span>
+        </label>
+        <label>
+          <input type="radio" name="reason" value="Document Request" required>
+          <span><svg class="ic"><use href="#i-file"/></svg> Document Request</span>
+        </label>
+        <div id="docChoices" class="sub-options">
+          {% for doc_name, doc_price in prices.items() %}
+          <label><input type="checkbox" class="doc-check" name="doc_list" value="{{ doc_name }}" data-price="{{ doc_price }}"> {{ labels.get(doc_name, doc_name) }} — ₱{{ doc_price }}</label>
+          {% endfor %}
+        </div>
+
+        <div id="docPriceCard" class="price-card" style="display:none;">
+          <div id="docPriceLines"></div>
+          <div class="price-row total"><span>Total</span><span id="docTotal">₱0</span></div>
+        </div>
+        <label>
+          <input type="radio" name="reason" value="Other" required>
+          <span><svg class="ic"><use href="#i-chat"/></svg> Other</span>
+        </label>
+      </div>
+
+      <input type="text" name="reason_other" id="reasonOther" placeholder="Please specify your reason" style="display:none;">
+
+      <label class="request-type-label">Payment Method</label>
+      <div class="radio-group">
+        <label>
+          <input type="radio" name="payment_method" value="cash" checked>
+          <span><svg class="ic"><use href="#i-cash"/></svg> Cash (pay at counter)</span>
+        </label>
+        <label>
+          <input type="radio" name="payment_method" value="online">
+          <span><svg class="ic"><use href="#i-card"/></svg> Pay Online — Create a free account</span>
+        </label>
+      </div>
+
+      <button type="submit" id="ticketBtn">Get My Ticket</button>
+    </form>
+
+    <p style="text-align:center;margin-top:20px;font-size:14px;">
+      Already have a ticket? <a href="{{ url_for('recover_ticket') }}">Recover your ticket</a>
+    </p>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    /* Guide modal */
+    function openGuide(){document.getElementById('guideModal').style.display='flex';}
+    function closeGuide(e){
+      if(e.target===document.getElementById('guideModal')||e.target.classList.contains('close-guide')){
+        document.getElementById('guideModal').style.display='none';
+      }
+    }
+
+    /* Socket: break banner */
+    const socket = io(window.location.origin, { transports: ["websocket"], cors: { origin: "*" } });
+
+    function formatTime(t){
+      if(!t) return "";
+      if(t.includes("M")) return t;
+      const [h,m]=t.split(":"); const hr=parseInt(h,10);
+      return `${hr%12||12}:${m} ${hr>=12?'PM':'AM'}`;
+    }
+    function adjustBodyPadding(v){
+      const b=document.getElementById('break-banner');
+      document.body.style.paddingTop = (v&&b) ? (b.offsetHeight||56)+"px" : "0px";
+    }
+    window.addEventListener('load',()=>{
+      const b=document.getElementById('break-banner'), s=document.getElementById('banner-time');
+      if(s && s.textContent.trim()) s.textContent=formatTime(s.textContent.trim());
+      if(b && b.style.display!=='none') adjustBodyPadding(true);
+    });
+    socket.on('break_announcement',(d)=>{
+      const b=document.getElementById('break-banner'), s=document.getElementById('banner-time');
+      if(d.active && d.time){ s.textContent=formatTime(d.time); b.style.display='block'; adjustBodyPadding(true); }
+      else { b.style.display='none'; adjustBodyPadding(false); }
+    });
+
+    /* Member / Visitor toggle (values kept for backend compatibility) */
+    const studentFields=document.getElementById("studentFields");
+    const guestFields=document.getElementById("guestFields");
+    const studentInputs=studentFields?studentFields.querySelectorAll("input"):[];
+    const guestInputs=guestFields?guestFields.querySelectorAll("input"):[];
+
+    function setMode(mode){
+      if(mode==="student"){
+        studentFields.style.display="block"; guestFields.style.display="none";
+        studentInputs.forEach(i=>{i.disabled=false;i.required=true;});
+        guestInputs.forEach(i=>{i.disabled=true;i.required=false;i.value="";});
+      } else if(mode==="guest"){
+        studentFields.style.display="none"; guestFields.style.display="block";
+        studentInputs.forEach(i=>{i.disabled=true;i.required=false;i.value="";});
+        guestInputs.forEach(i=>{i.disabled=false;i.required=true;});
+      }
+    }
+    document.querySelectorAll("input[name='user_type']").forEach(r=>r.addEventListener("change",function(){setMode(this.value);}));
+
+    /* Document sub-options toggle-off on re-click */
+    const docRadio=document.querySelector('input[value="Document Request"]');
+    const docChoices=document.getElementById('docChoices');
+    if(docRadio){
+      docRadio.addEventListener('click',function(){
+        if(this.dataset.checked==="true"){
+          this.checked=false; this.dataset.checked="false";
+          docChoices.style.display='none';
+          docChoices.querySelectorAll('input[type="checkbox"]').forEach(cb=>cb.checked=false);
+        } else { this.dataset.checked="true"; docChoices.style.display='flex'; }
+      });
+      docRadio.addEventListener('change',function(){ if(!this.checked) this.dataset.checked="false"; });
+    }
+
+    /* Itemized document price total */
+    const docCheckboxes = document.querySelectorAll('.doc-check');
+    const docPriceCard = document.getElementById('docPriceCard');
+    const docPriceLines = document.getElementById('docPriceLines');
+    const docTotalSpan = document.getElementById('docTotal');
+
+    function updateDocTotal() {
+        let total = 0;
+        let linesHtml = '';
+        let anyChecked = false;
+
+        docCheckboxes.forEach(cb => {
+            if (cb.checked) {
+                const price = parseInt(cb.dataset.price, 10);
+                total += price;
+                anyChecked = true;
+                const label = cb.closest('label').textContent.split('—')[0].trim();
+                linesHtml += `<div class="price-row"><span>${label}</span><span>₱${price}</span></div>`;
+            }
+        });
+
+        docPriceLines.innerHTML = linesHtml;
+        docTotalSpan.textContent = '₱' + total;
+        docPriceCard.style.display = anyChecked ? 'block' : 'none';
+    }
+
+    docCheckboxes.forEach(cb => cb.addEventListener('change', updateDocTotal));
+
+    /* Other reason field */
+    const reasonRadios=document.querySelectorAll("input[name='reason']");
+    const reasonOther=document.getElementById('reasonOther');
+    reasonRadios.forEach(r=>r.addEventListener('change',()=>{
+      const val=document.querySelector("input[name='reason']:checked")?.value;
+      if(val==='Other'){ reasonOther.value=''; reasonOther.style.display='block'; reasonOther.required=true; }
+      else { reasonOther.style.display='none'; reasonOther.required=false; reasonOther.value=''; }
+    }));
+
+    /* Inline name editing */
+    document.getElementById('editPenBtn')?.addEventListener('click',function(e){
+      e.preventDefault();
+      document.getElementById('nameDisplay').style.display='none';
+      document.getElementById('nameEditRow').style.display='block';
+    });
+    document.getElementById('cancelNameBtn')?.addEventListener('click',function(e){
+      e.preventDefault();
+      document.getElementById('nameEditRow').style.display='none';
+      document.getElementById('nameDisplay').style.display='block';
+    });
+    document.getElementById('saveNameBtn')?.addEventListener('click',function(e){
+      e.preventDefault();
+      const first=document.getElementById('editFirstName').value.trim();
+      const last=document.getElementById('editLastName').value.trim();
+      fetch("{{ url_for('edit_name') }}",{
+        method:"POST",
+        headers:{"Content-Type":"application/x-www-form-urlencoded","X-Requested-With":"XMLHttpRequest"},
+        body:`first_name=${encodeURIComponent(first)}&last_name=${encodeURIComponent(last)}`
+      })
+      .then(r=>r.json())
+      .then(data=>{
+        if(data.success){
+          document.getElementById('nameText').textContent=data.full_name;
+          document.getElementById('nameEditRow').style.display='none';
+          document.getElementById('nameDisplay').style.display='block';
+        } else { alert(data.message||"Error updating name."); }
+      });
+    });
+  </script>
+
+  <!-- Payment progress popup -->
+  <div id="payPopup" class="pay-overlay" style="display:none;">
+    <div class="pay-popup-card">
+      <div class="pay-popup-spinner" id="paySpinner"><div class="ring"></div><div class="check"><svg width="34" height="34" viewBox="0 0 24 24"><use href="#i-check"/></svg></div></div>
+      <h3 id="payPopupTitle">Preparing Secure Checkout</h3>
+      <p id="payPopupText">Talking to the payment gateway…</p>
+      <div class="pay-popup-steps">
+        <div class="pstep active" id="ps1"><span class="dot"></span> Preparing checkout</div>
+        <div class="pstep" id="ps2"><span class="dot"></span> Redirecting to PayMongo</div>
+        <div class="pstep" id="ps3"><span class="dot"></span> Confirming payment</div>
+        <div class="pstep" id="ps4"><span class="dot"></span> Issuing your ticket</div>
+      </div>
+      <button class="btn secondary" id="payPopupClose" style="display:none;" onclick="closePayPopup()">Close</button>
+    </div>
+  </div>
+
+  <script>
+  /* ---------- Online payment popup flow ---------- */
+  const payPopup = document.getElementById('payPopup');
+
+  function setStep(n, title, text) {
+      for (let i = 1; i <= 4; i++) {
+          const el = document.getElementById('ps' + i);
+          el.classList.remove('active', 'done');
+          if (i < n) el.classList.add('done');
+          else if (i === n) el.classList.add('active');
+      }
+      if (title) document.getElementById('payPopupTitle').textContent = title;
+      if (text)  document.getElementById('payPopupText').textContent = text;
+  }
+  function openPayPopup() {
+      document.getElementById('paySpinner').classList.remove('done');
+      document.getElementById('payPopupClose').style.display = 'none';
+      setStep(1, 'Preparing Secure Checkout', 'Talking to the payment gateway…');
+      payPopup.style.display = 'flex';
+  }
+  function closePayPopup() { payPopup.style.display = 'none'; }
+  function payError(msg) {
+      setStep(1, 'Something went wrong', msg);
+      document.getElementById('payPopupClose').style.display = 'block';
+  }
+
+  /* Intercept the ticket form ONLY when online payment is selected */
+  document.querySelector('form[action*="get_ticket"]').addEventListener('submit', function (e) {
+      const isOnline = document.querySelector("input[name='payment_method']:checked")?.value === 'online';
+      if (!isOnline) {
+          const btn = document.getElementById('ticketBtn');
+          btn.disabled = true;
+          btn.textContent = 'Issuing ticket…';
+          return;                          // cash → normal submit, no popup needed
+      }
+      e.preventDefault();
+      openPayPopup();
+
+      fetch(this.action, {
+          method: 'POST',
+          body: new FormData(this),
+          headers: { 'X-Requested-With': 'XMLHttpRequest', 'ngrok-skip-browser-warning': 'true' }
+      })
+      .then(async r => {
+          const ct = r.headers.get('content-type') || '';
+          if (ct.includes('application/json')) {
+              const data = await r.json();
+              if (data.checkout_url) {
+                  setStep(2, 'Redirecting to PayMongo', 'Complete your payment in the secure window…');
+                  setTimeout(() => { window.location.href = data.checkout_url; }, 900);
+              } else {
+                  payError(data.message || 'Could not start checkout. Please try again.');
+              }
+          } else if (r.redirected) {
+              // Server actually redirected us elsewhere (flash message,
+              // "needs an account" notice, ticket-quota page, etc.) -
+              // safe to navigate there for real.
+              window.location.href = r.url;
+          } else {
+              // Server rendered a page IN PLACE of this same POST request
+              // (e.g. the duplicate-ticket "continue anyway?" warning).
+              // r.url here is still /get_ticket, which only accepts POST -
+              // navigating to it would 405. Show the returned page instead.
+              const html = await r.text();
+              document.open(); document.write(html); document.close();
+          }
+      })
+      .catch(() => payError('Network error. Please check your connection and try again.'));
+  });
+  </script>
+</body>
+</html>

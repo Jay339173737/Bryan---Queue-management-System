@@ -187,7 +187,7 @@ def process_ticket_request():
         
 
         # ---------- basic validation ----------
-        if customer_type not in ("student", "guest"):
+        if customer_type not in ("student", "guest"):   
             flash("Invalid customer type specified.", "danger")
             return redirect(url_for("landing_page"))
 
@@ -1188,4 +1188,4 @@ if __name__ == "__main__":
         pass
         
     print("Server Starting...")
-    socketio.run(app, debug=True, host='0.0.0.0', port=5001)
+    socketio.run(app, debug=True, host='0.0.0.0', port=5001, allow_unsafe_werkzeug=True)    

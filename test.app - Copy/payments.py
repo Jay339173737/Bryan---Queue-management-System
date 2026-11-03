@@ -8,8 +8,6 @@ PAYMONGO_API = "https://api.paymongo.com/v1"
 SECRET_KEY = os.environ.get("PAYMONGO_SECRET_KEY", "")
 WEBHOOK_SECRET = os.environ.get("PAYMONGO_WEBHOOK_SECRET", "")
 
-# Set False when PayMongo isn't configured yet — app falls back to the
-# old instant-"paid" placeholder behavior instead of crashing.
 PAYMONGO_ENABLED = bool(SECRET_KEY)
 
 SERVICE_FEE_CENTAVOS = 0  # add a convenience fee here if you ever want one

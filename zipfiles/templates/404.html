@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QFlow — Page Not Found</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        :root{
+            --blue-700:#1d4ed8; --blue-600:#2563eb; --ink:#0f172a; --slate:#475569; --border:#e2e8f0;
+        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{
+            font-family:'Inter',system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;
+            background:radial-gradient(1000px 600px at 80% -10%,rgba(37,99,235,.12),transparent 60%),#f5f8fe;color:var(--ink);
+            padding:20px;text-align:center;
+        }
+        .card{
+            background:#fff;border:1px solid var(--border);border-radius:24px;padding:56px 44px;
+            max-width:440px;width:100%;box-shadow:0 24px 60px rgba(15,23,42,.10);
+        }
+        .brand-mark{
+            width:60px;height:60px;border-radius:18px;margin:0 auto 24px;
+            background:linear-gradient(150deg,var(--blue-700),var(--blue-600) 55%,#0ea5e9);
+            color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;
+        }
+        .code{font-size:56px;font-weight:800;letter-spacing:-.03em;color:var(--blue-600);margin-bottom:6px;}
+        h1{font-size:20px;font-weight:800;margin-bottom:10px;}
+        p{color:var(--slate);font-size:14.5px;line-height:1.6;margin-bottom:28px;}
+        a.btn{
+            display:inline-block;padding:13px 26px;border-radius:12px;background:var(--blue-600);color:#fff;
+            font-weight:700;font-size:14.5px;text-decoration:none;
+        }
+        a.btn:hover{background:var(--blue-700);}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="brand-mark">Q</div>
+        <div class="code">404</div>
+        <h1>Page Not Found</h1>
+        <p>The page you're looking for doesn't exist or may have moved.</p>
+        <a class="btn" href="{{ url_for('landing_page') }}">← Back to QFlow</a>
+    </div>
+</body>
+</html>

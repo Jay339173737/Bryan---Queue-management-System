@@ -43,7 +43,7 @@
       <h3>How It Works</h3>
       <div class="guide-step">
         <div class="step-number">1</div>
-        <div class="step-text"><h4>Tell Us Who You Are</h4><p>Choose <strong>Member</strong> (with an account ID) or <strong>Visitor</strong>.</p></div>
+        <div class="step-text"><h4>Tell Us Who You Are</h4><p>Choose <strong>Student</strong> (with a student ID) or <strong>Visitor</strong>.</p></div>
       </div>
       <div class="guide-step">
         <div class="step-number">2</div>
@@ -97,7 +97,7 @@
         <div class="radio-group">
           <label>
             <input type="radio" name="user_type" value="student" required>
-            <span><svg class="ic"><use href="#i-user"/></svg> Member</span>
+            <span><svg class="ic"><use href="#i-user"/></svg> Student</span>
           </label>
           <label>
             <input type="radio" name="user_type" value="guest" required>
@@ -114,7 +114,7 @@
         <div id="studentFields" style="display:none;">
           <input type="text" name="first_name" placeholder="First Name" disabled>
           <input type="text" name="last_name" placeholder="Last Name" disabled>
-          <input type="text" name="student_id" placeholder="Account / Member ID" disabled>
+          <input type="text" name="student_id" placeholder="Student ID" disabled>
         </div>
 
         <div id="guestFields" style="display:none;">
@@ -126,8 +126,8 @@
       <label class="request-type-label">What do you need?</label>
       <div class="request-options">
         <label>
-          <input type="radio" name="reason" value="Consultation" required>
-          <span><svg class="ic"><use href="#i-briefcase"/></svg> Consultation</span>
+          <input type="radio" name="reason" value="Enrollment" required>
+          <span><svg class="ic"><use href="#i-briefcase"/></svg> Enrollment</span>
         </label>
         <label>
           <input type="radio" name="reason" value="Payment / Transaction" required>
@@ -136,6 +136,11 @@
         <label>
           <input type="radio" name="reason" value="Document Request" required>
           <span><svg class="ic"><use href="#i-file"/></svg> Document Request</span>
+        </label>
+        <label>
+          <input type="radio" name="reason" value="custom" required>
+          <span><svg class="ic"><use  href="#i-file"/></svg>custom</span>
+          
         </label>
         <div id="docChoices" class="sub-options">
           {% for doc_name, doc_price in prices.items() %}
@@ -209,7 +214,7 @@
       else { b.style.display='none'; adjustBodyPadding(false); }
     });
 
-    /* Member / Visitor toggle (values kept for backend compatibility) */
+    /* Student / Visitor toggle (values kept for backend compatibility) */
     const studentFields=document.getElementById("studentFields");
     const guestFields=document.getElementById("guestFields");
     const studentInputs=studentFields?studentFields.querySelectorAll("input"):[];

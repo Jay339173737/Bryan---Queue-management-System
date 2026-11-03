@@ -10,3 +10,4 @@ itsdangerous
 MarkupSafe
 requests==2.32.3
 python-dotenv
+cryptography

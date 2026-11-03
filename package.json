@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "start": "python \"test.app - Copy/apps12.py\""
+  },
+  "dependencies": {
+    "dotenv": "^18.0.4"
+  }
+}

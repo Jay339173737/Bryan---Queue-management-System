@@ -1,6 +1,7 @@
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
+from encryption import EncryptedText
 
 
 db = SQLAlchemy()
@@ -43,7 +44,7 @@ class QueueCustomer(db.Model):
     student_number = db.Column(db.String(50), unique=True, nullable=True, index=True)
     firstname = db.Column(db.String(100), nullable=True)
     lastname = db.Column(db.String(100), nullable=True)
-    fullname = db.Column(db.String(200), nullable=False)
+    fullname = db.Column(EncryptedText, nullable=False)
     password_hash = db.Column(db.String(255), nullable=True)
     registration_date = db.Column(db.DateTime, default=datetime.utcnow)
     customer_tickets = db.relationship('QueueTicket', backref='customer_ref', lazy=True, cascade='all, delete-orphan')
@@ -71,7 +72,7 @@ class QueueTicket(db.Model):
     __tablename__ = 'queue_tickets'
     
     id = db.Column(db.Integer, primary_key=True)
-    visit_reason = db.Column(db.Text, nullable=True)
+    visit_reason = db.Column(EncryptedText, nullable=True)
     ticket_status = db.Column(db.String(20), default='waiting', index=True)  # waiting, serving, served, no_show
     customer_ref_id = db.Column(db.Integer, db.ForeignKey('queue_customers.id'), nullable=False)
     issue_time = db.Column(db.DateTime, default=datetime.utcnow, index=True)
@@ -134,7 +135,7 @@ class AdvancePayment(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('queue_customers.id'), nullable=False)
-    document_name = db.Column(db.String(200), nullable=False)
+    document_name = db.Column(EncryptedText, nullable=False)
     payment_status = db.Column(db.String(20), default='paid')
     is_used = db.Column(db.Boolean, default=False)
     payment_batch_id = db.Column(db.String(36), nullable=False, index=True)
@@ -146,4 +147,3 @@ class AdvancePayment(db.Model):
     flow_kind = db.Column(db.String(20), default="advance")
 
     customer = db.relationship('QueueCustomer', backref='advance_payments')
-    
